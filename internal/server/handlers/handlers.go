@@ -31,6 +31,7 @@ func HandlerNotFound(w http.ResponseWriter, _ *http.Request) {
 }
 
 func HandlerShorten(storage storage.Storage, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	if !validateContentType(w, r, "text/plain; charset=utf-8") {
 		return
 	}
@@ -53,13 +54,14 @@ func HandlerShorten(storage storage.Storage, w http.ResponseWriter, r *http.Requ
 }
 
 func HandlerExpand(storage storage.Storage, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	shortURL := splitURLPath(r.URL.Path)[0]
 	longURL, ok := storage.GetLongURL(shortURL)
 	if ok {
 		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("Short url not found"))
 	}
 }
