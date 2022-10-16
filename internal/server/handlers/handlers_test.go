@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/storage"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -76,30 +76,28 @@ func TestHandlerShorten(t *testing.T) {
 		},
 	}
 
-	links := storage.NewStorage()
+	linksStorage := storage.NewStorage()
+	gin.SetMode(gin.ReleaseMode)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			router := SetupRouter(linksStorage)
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
 			request.Header.Set("Content-Type", tt.contentType)
 			w := httptest.NewRecorder()
 
-			HandlerShorten(links, w, request)
-			result := w.Result()
+			router.ServeHTTP(w, request)
 
-			defer result.Body.Close()
-			body, _ := io.ReadAll(result.Body)
-
-			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
-			assert.Equal(t, tt.want.statusCode, result.StatusCode)
-			assert.Equal(t, tt.want.body, string(body))
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			assert.Equal(t, tt.want.statusCode, w.Code)
+			assert.Equal(t, tt.want.body, w.Body.String())
 		})
 	}
 }
 
 func TestHandlerExpand(t *testing.T) {
-	links := storage.NewStorage()
-	shortURL, _ := links.SaveLongURL("https://yandex.ru")
+	linksStorage := storage.NewStorage()
+	shortURL, _ := linksStorage.SaveLongURL("https://yandex.ru")
 
 	type want struct {
 		contentType string
@@ -132,20 +130,19 @@ func TestHandlerExpand(t *testing.T) {
 		},
 	}
 
+	gin.SetMode(gin.ReleaseMode)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			router := SetupRouter(linksStorage)
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			HandlerExpand(links, w, request)
-			result := w.Result()
+			router.ServeHTTP(w, request)
 
-			defer result.Body.Close()
-			body, _ := io.ReadAll(result.Body)
-
-			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
-			assert.Equal(t, tt.want.statusCode, result.StatusCode)
-			assert.Equal(t, tt.want.body, string(body))
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			assert.Equal(t, tt.want.statusCode, w.Code)
+			assert.Equal(t, tt.want.body, w.Body.String())
 		})
 	}
 }

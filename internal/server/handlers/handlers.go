@@ -1,96 +1,66 @@
 package handlers
 
 import (
-	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/storage"
 	"io"
 	"net/http"
-	"strings"
 )
 
-func HandlerLinks(storage storage.Storage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		pathChunks := splitURLPath(r.URL.Path)
-		pathLen := len(pathChunks)
+func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		if !validateContentType(c, "text/plain; charset=utf-8") {
+			return
+		}
+		longURL, err := readBody(c)
+		if err != nil || longURL == "" {
+			c.String(http.StatusBadRequest, "Please specify valid url in body")
+			return
+		}
 
-		if pathLen == 0 && r.Method == http.MethodPost {
-			// POST /
-			HandlerShorten(storage, w, r)
-		} else if pathLen == 1 && r.Method == http.MethodGet {
-			// GET /123, GET /123/
-			HandlerExpand(storage, w, r)
+		shortURL, err := storage.SaveLongURL(longURL)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to generate short link")
+			return
+		}
+
+		c.String(http.StatusCreated, config.ServerBaseURL+"/"+shortURL)
+	}
+}
+
+func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		shortURL := c.Param("shortURL")
+		longURL, ok := storage.GetLongURL(shortURL)
+		if ok {
+			c.Redirect(http.StatusTemporaryRedirect, longURL)
 		} else {
-			HandlerNotFound(w, r)
+			c.String(http.StatusNotFound, "Short url not found")
 		}
 	}
 }
 
-func HandlerNotFound(w http.ResponseWriter, _ *http.Request) {
-	http.Error(w, "404 Not Found", http.StatusNotFound)
-}
-
-func HandlerShorten(storage storage.Storage, w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	if !validateContentType(w, r, "text/plain; charset=utf-8") {
-		return
-	}
-	longURL, err := readBody(r)
-	if err != nil || longURL == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte("Please specify valid url in body"))
-		return
-	}
-
-	shortURL, err := storage.SaveLongURL(longURL)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Failed to generate short link"))
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(config.ServerBaseURL + "/" + shortURL))
-}
-
-func HandlerExpand(storage storage.Storage, w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	shortURL := splitURLPath(r.URL.Path)[0]
-	longURL, ok := storage.GetLongURL(shortURL)
-	if ok {
-		w.Header().Set("Location", longURL)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("Short url not found"))
-	}
-}
-
-func splitURLPath(path string) (fragments []string) {
-	// "/abc/def/" превращается в ["", "abc", "def", ""]
-	// поэтому дополнительно чистим от пустых строк
-	for _, fragment := range strings.Split(path, "/") {
-		if fragment != "" {
-			fragments = append(fragments, fragment)
-		}
-	}
-	return
-}
-
-func validateContentType(w http.ResponseWriter, r *http.Request, contentType string) (ok bool) {
-	ct := r.Header.Get("Content-Type")
-	if ct != contentType {
-		w.WriteHeader(http.StatusBadRequest)
-		body := fmt.Sprintf("Content-Type must be '%s'", contentType)
-		_, _ = w.Write([]byte(body))
+func validateContentType(c *gin.Context, contentType string) bool {
+	headers, ok := c.Request.Header["Content-Type"]
+	if !ok {
+		c.String(http.StatusBadRequest, "Content-Type must be '"+contentType+"'")
 		return false
 	}
-	return true
+	for _, header := range headers {
+		if header == contentType {
+			return true
+		}
+	}
+	c.String(http.StatusBadRequest, "Content-Type must be '"+contentType+"'")
+	return false
 }
 
-func readBody(r *http.Request) (body string, err error) {
-	defer func() { _ = r.Body.Close() }()
-	content, err := io.ReadAll(r.Body)
+func readBody(c *gin.Context) (body string, err error) {
+	defer func() { _ = c.Request.Body.Close() }()
+	content, err := io.ReadAll(c.Request.Body)
 	if err == nil {
 		body = string(content)
 	}
