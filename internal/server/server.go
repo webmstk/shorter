@@ -1,11 +1,12 @@
 package server
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/server/handlers"
 	"github.com/webmstk/shorter/internal/storage"
-	"log"
 )
 
 func Run() {
