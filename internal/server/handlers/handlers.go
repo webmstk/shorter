@@ -1,17 +1,19 @@
 package handlers
 
 import (
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/storage"
-	"io"
-	"net/http"
 )
 
 func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Content-Type", "text/plain; charset=utf-8")
-		if !validateContentType(c, "text/plain; charset=utf-8") {
+		c.Header("Content-Type", "text/plain")
+		if !validateContentType(c, "text/plain") {
 			return
 		}
 		longURL, err := readBody(c)
@@ -32,7 +34,7 @@ func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
 
 func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Content-Type", "text/plain; charset=utf-8")
+		c.Header("Content-Type", "text/plain")
 		shortURL := c.Param("shortURL")
 		longURL, ok := storage.GetLongURL(shortURL)
 		if ok {
@@ -50,7 +52,7 @@ func validateContentType(c *gin.Context, contentType string) bool {
 		return false
 	}
 	for _, header := range headers {
-		if header == contentType {
+		if strings.Contains(header, contentType) {
 			return true
 		}
 	}
