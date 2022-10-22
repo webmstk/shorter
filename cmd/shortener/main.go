@@ -1,3 +1,7 @@
 package main
 
-func main() {}
+import "github.com/webmstk/shorter/internal/app"
+
+func main() {
+	app.Run()
+}
