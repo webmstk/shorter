@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"io"
 	"net/http"
 	"strings"
 
@@ -58,13 +57,4 @@ func validateContentType(c *gin.Context, contentType string) bool {
 	}
 	c.String(http.StatusBadRequest, "Content-Type must be '"+contentType+"'")
 	return false
-}
-
-func readBody(c *gin.Context) (body string, err error) {
-	defer func() { _ = c.Request.Body.Close() }()
-	content, err := io.ReadAll(c.Request.Body)
-	if err == nil {
-		body = string(content)
-	}
-	return
 }

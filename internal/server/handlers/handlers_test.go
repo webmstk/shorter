@@ -147,11 +147,3 @@ func TestHandlerExpand(t *testing.T) {
 		})
 	}
 }
-
-func generateShortLink(s string) string {
-	s, err := storage.GenerateShortLink(s)
-	if err != nil {
-		panic("Failed to generate short link")
-	}
-	return s
-}
