@@ -3,6 +3,7 @@ package storage
 import (
 	"hash/fnv"
 	"strconv"
+	"sync"
 )
 
 type Storage interface {
@@ -10,25 +11,32 @@ type Storage interface {
 	GetLongURL(shortURL string) (longURL string, ok bool)
 }
 
-type MapStorage map[string]string
-
-func NewStorage() MapStorage {
-	return make(MapStorage)
+type MapStorage struct {
+	mu   sync.Mutex
+	data map[string]string
 }
 
-func (urls MapStorage) SaveLongURL(longURL string) (shortURL string, err error) {
+func NewStorage() *MapStorage {
+	return &MapStorage{data: make(map[string]string)}
+}
+
+func (urls *MapStorage) SaveLongURL(longURL string) (shortURL string, err error) {
 	shortURL, err = GenerateShortLink(longURL)
 	if err != nil {
 		return "", err
 	}
 	// не буду искать, была ли сохранена ссылка ранее, перезапишу ключ, благо хеш
 	// сгенерится такой же
-	urls[shortURL] = longURL
+	urls.mu.Lock()
+	defer urls.mu.Unlock()
+	urls.data[shortURL] = longURL
 	return shortURL, nil
 }
 
-func (urls MapStorage) GetLongURL(shortURL string) (longURL string, ok bool) {
-	longURL, ok = urls[shortURL]
+func (urls *MapStorage) GetLongURL(shortURL string) (longURL string, ok bool) {
+	urls.mu.Lock()
+	defer urls.mu.Unlock()
+	longURL, ok = urls.data[shortURL]
 	return
 }
 
