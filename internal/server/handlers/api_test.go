@@ -34,7 +34,7 @@ func TestHandlerApiExpand(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  201,
-				body:        `{"result":"` + config.ServerBaseURL + "/" + generateShortLink("https://ya.ru") + `"}`,
+				body:        `{"result":"` + config.Config.BaseURL + "/" + generateShortLink("https://ya.ru") + `"}`,
 			},
 		},
 		{

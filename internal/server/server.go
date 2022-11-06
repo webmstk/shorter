@@ -12,6 +12,6 @@ func Run() {
 	linksStorage := storage.NewStorage()
 	r := handlers.SetupRouter(linksStorage)
 	log.Println("Starting web-server at", config.ServerBaseURL)
-	err := r.Run(config.ServerHost + ":" + config.ServerPort)
+	err := r.Run(config.Config.ServerAddress)
 	log.Fatal(err)
 }

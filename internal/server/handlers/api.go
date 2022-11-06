@@ -40,7 +40,7 @@ func HandlerAPIShorten(storage storage.Storage) gin.HandlerFunc {
 		respBody := struct {
 			Result string `json:"result"`
 		}{
-			Result: config.ServerBaseURL + "/" + shortURL,
+			Result: config.Config.BaseURL + "/" + shortURL,
 		}
 
 		result, _ := json.Marshal(respBody)

@@ -52,7 +52,7 @@ func TestHandlerShorten(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        config.ServerBaseURL + "/" + generateShortLink("https://ya.ru"),
+				body:        config.Config.BaseURL + "/" + generateShortLink("https://ya.ru"),
 			},
 		},
 		{
@@ -62,7 +62,7 @@ func TestHandlerShorten(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        config.ServerBaseURL + "/" + generateShortLink("https://ya.ru"),
+				body:        config.Config.BaseURL + "/" + generateShortLink("https://ya.ru"),
 			},
 		},
 		{
@@ -72,7 +72,7 @@ func TestHandlerShorten(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        config.ServerBaseURL + "/" + generateShortLink("https://yandex.ru"),
+				body:        config.Config.BaseURL + "/" + generateShortLink("https://yandex.ru"),
 			},
 		},
 	}
