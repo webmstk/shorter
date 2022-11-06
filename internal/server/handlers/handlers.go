@@ -27,7 +27,7 @@ func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		c.String(http.StatusCreated, config.ServerBaseURL+"/"+shortURL)
+		c.String(http.StatusCreated, config.Config.BaseURL+"/"+shortURL)
 	}
 }
 
