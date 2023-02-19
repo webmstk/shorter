@@ -32,3 +32,28 @@ git fetch template && git checkout template/main .github
 Например в ветке с названием `iter4` запустятся автотесты для итераций с первой по четвертую.
 
 При мерже ветки с итерацией в основную ветку (`main`) будут запускаться все автотесты.
+
+# Запуск приложения
+
+```
+go run cmd/shortener/main.go
+```
+
+# Запуск локальных тестов
+
+```
+go test ./...
+```
+
+# Примеры http-запросов к приложению:
+
+```
+curl -X POST --header "Content-Type: text/plain; charset=utf-8" http://localhost:8080 -d "https://ya.ru"
+=>
+http://localhost:8080/2138586483%
+
+curl -X GET --header "Content-Type: text/plain; charset=utf-8" http://localhost:8080/2138586483 -v
+=>
+...
+< Location: https://ya.ru
+...

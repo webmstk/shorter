@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestGenerateShortLink(t *testing.T) {
@@ -24,8 +26,6 @@ func TestGenerateShortLink(t *testing.T) {
 }
 
 func TestSaveLongURL(t *testing.T) {
-	urls := NewStorage()
-
 	tests := []struct {
 		name  string
 		value string
@@ -36,9 +36,25 @@ func TestSaveLongURL(t *testing.T) {
 		{name: "another value", value: "https://yandex.ru", want: "1250700976"},
 	}
 
+	storageMap := &StorageMap{data: make(map[string]string)}
+
 	for _, tt := range tests {
-		shortURL, err := urls.SaveLongURL(tt.value)
-		longURL, ok := urls.GetLongURL(shortURL)
+		shortURL, err := storageMap.SaveLongURL(tt.value)
+		longURL, ok := storageMap.GetLongURL(shortURL)
+
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, tt.want, shortURL)
+		assert.Equal(t, tt.value, longURL)
+	}
+
+	path := "../../storage/storage_test.json"
+	storageFile := &StorageFile{filePath: path}
+	defer os.Remove(path)
+
+	for _, tt := range tests {
+		shortURL, err := storageFile.SaveLongURL(tt.value)
+		longURL, ok := storageFile.GetLongURL(shortURL)
 
 		require.NoError(t, err)
 		require.True(t, ok)
@@ -48,9 +64,9 @@ func TestSaveLongURL(t *testing.T) {
 }
 
 func TestGetLongURL(t *testing.T) {
-	urls := NewStorage()
+	storageMap := &StorageMap{data: make(map[string]string)}
 	link := "https://ya.ru"
-	shortURL, _ := urls.SaveLongURL(link)
+	shortURL, _ := storageMap.SaveLongURL(link)
 
 	type want struct {
 		link string
@@ -81,7 +97,22 @@ func TestGetLongURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		longURL, ok := urls.GetLongURL(tt.value)
+		longURL, ok := storageMap.GetLongURL(tt.value)
+		assert.Equal(t, tt.want.ok, ok)
+		assert.Equal(t, tt.want.link, longURL)
+	}
+
+	path := "../../storage/storage_test.json"
+	storageFile := &StorageFile{filePath: path}
+	defer os.Remove(path)
+
+	_, err := storageFile.SaveLongURL(link)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, tt := range tests {
+		longURL, ok := storageFile.GetLongURL(tt.value)
 		assert.Equal(t, tt.want.ok, ok)
 		assert.Equal(t, tt.want.link, longURL)
 	}

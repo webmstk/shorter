@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/webmstk/shorter/internal/server/handlers"
 	"log"
 
 	"github.com/webmstk/shorter/internal/config"
+	"github.com/webmstk/shorter/internal/server/handlers"
 	"github.com/webmstk/shorter/internal/storage"
 )
 

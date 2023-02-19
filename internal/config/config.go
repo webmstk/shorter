@@ -2,14 +2,16 @@ package config
 
 import (
 	"fmt"
-	"github.com/caarlos0/env/v6"
 	"log"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type AppConfig struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	Schema        string
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	Schema          string
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 var Config AppConfig
