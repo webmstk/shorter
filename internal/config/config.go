@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -8,8 +9,8 @@ import (
 )
 
 type AppConfig struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
 	Schema          string
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
@@ -17,13 +18,30 @@ type AppConfig struct {
 var Config AppConfig
 var ServerBaseURL string
 
-func init() {
+func InitConfig() {
 	Config.Schema = "http"
 
+	parseCliArguments()
+	parseEnvVariables()
+
+	ServerBaseURL = fmt.Sprintf("%s://%s", Config.Schema, Config.ServerAddress)
+}
+
+func parseCliArguments() {
+	serverAddress := flag.String("a", "localhost:8080", "server address")
+	baseURL := flag.String("b", "http://localhost:8080", "base server address")
+	fileStoragePath := flag.String("f", "storage/storage.json", "file storage path")
+
+	flag.Parse()
+
+	Config.ServerAddress = *serverAddress
+	Config.BaseURL = *baseURL
+	Config.FileStoragePath = *fileStoragePath
+}
+
+func parseEnvVariables() {
 	err := env.Parse(&Config)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	ServerBaseURL = fmt.Sprintf("%s://%s", Config.Schema, Config.ServerAddress)
 }
