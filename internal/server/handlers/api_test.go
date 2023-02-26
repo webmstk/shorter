@@ -1,16 +1,18 @@
 package handlers
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/webmstk/shorter/internal/config"
-	"github.com/webmstk/shorter/internal/storage"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/webmstk/shorter/internal/config"
+	"github.com/webmstk/shorter/internal/storage"
 )
 
 func TestHandlerApiExpand(t *testing.T) {
+	setupTestConfig(&config.Config)
 	linksStorage := storage.NewStorage()
 
 	type want struct {
@@ -52,12 +54,12 @@ func TestHandlerApiExpand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := SetupRouter(linksStorage)
+			r := setupServer(linksStorage)
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			request.Header.Set("Content-Type", tt.contentType)
 			w := httptest.NewRecorder()
 
-			router.ServeHTTP(w, request)
+			r.ServeHTTP(w, request)
 
 			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
 			assert.Equal(t, tt.want.statusCode, w.Code)

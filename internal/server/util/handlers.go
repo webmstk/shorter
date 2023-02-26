@@ -1,18 +1,19 @@
-package handlers
+package util
 
 import (
 	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ResponseError struct {
 	Error string `json:"error"`
 }
 
-func readBody(c *gin.Context) (body string, err error) {
+func ReadBody(c *gin.Context) (body string, err error) {
 	defer func() { _ = c.Request.Body.Close() }()
 	content, err := io.ReadAll(c.Request.Body)
 	if err == nil {
@@ -21,10 +22,10 @@ func readBody(c *gin.Context) (body string, err error) {
 	return
 }
 
-func validateContentTypeJSON(c *gin.Context, contentType string) bool {
+func ValidateContentTypeJSON(c *gin.Context, contentType string) bool {
 	headers, ok := c.Request.Header["Content-Type"]
 	if !ok {
-		response := writeJSONError(c, "Content-Type must be '"+contentType+"'")
+		response := WriteJSONError(c, "Content-Type must be '"+contentType+"'")
 		c.String(http.StatusBadRequest, response)
 		return false
 	}
@@ -33,13 +34,28 @@ func validateContentTypeJSON(c *gin.Context, contentType string) bool {
 			return true
 		}
 	}
-	response := writeJSONError(c, "Content-Type must be '"+contentType+"'")
+	response := WriteJSONError(c, "Content-Type must be '"+contentType+"'")
 	c.String(http.StatusBadRequest, response)
 	return false
 }
 
-func writeJSONError(c *gin.Context, error string) string {
+func WriteJSONError(c *gin.Context, error string) string {
 	responseError := ResponseError{Error: error}
 	response, _ := json.Marshal(responseError)
 	return string(response)
+}
+
+func HeaderContains(header http.Header, headerName, headerValue string) bool {
+	headers, ok := header[headerName]
+	if !ok {
+		return false
+	}
+
+	for _, h := range headers {
+		if strings.Contains(h, headerValue) {
+			return true
+		}
+	}
+
+	return false
 }
