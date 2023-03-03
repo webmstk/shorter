@@ -39,26 +39,25 @@ func Compressor() gin.HandlerFunc {
 		}
 
 		// Encoding response
-		// if util.HeaderContains(c.Request.Header, "Accept-Encoding", "gzip") {
-		// 	cw := &gzipWriter{buf: &bytes.Buffer{}, ResponseWriter: c.Writer}
-		// 	c.Writer = cw
+		if util.HeaderContains(c.Request.Header, "Accept-Encoding", "gzip") {
+			cw := &gzipWriter{buf: &bytes.Buffer{}, ResponseWriter: c.Writer}
+			c.Writer = cw
 
-		// 	c.Next()
+			c.Next()
 
-		// 	body := cw.buf.String()
-		// 	newBody, err := Compress([]byte(body))
-		// 	if err != nil {
-		// 		abortWithError(c, err)
-		// 		return
-		// 	}
+			body := cw.buf.String()
+			newBody, err := Compress([]byte(body))
+			if err != nil {
+				abortWithError(c, err)
+				return
+			}
 
-		// 	c.Header("Content-Type", "application/x-gzip")
-		// 	c.Writer.WriteString(string(newBody))
+			c.Header("Content-Encoding", "gzip")
+			c.Writer.WriteString(string(newBody))
 
-		// } else {
-		// 	c.Next()
-		// }
-		c.Next()
+		} else {
+			c.Next()
+		}
 	}
 }
 

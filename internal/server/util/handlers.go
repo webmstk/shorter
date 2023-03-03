@@ -14,7 +14,6 @@ type ResponseError struct {
 }
 
 func ReadBody(c *gin.Context) (body string, err error) {
-	defer func() { _ = c.Request.Body.Close() }()
 	content, err := io.ReadAll(c.Request.Body)
 	if err == nil {
 		body = string(content)

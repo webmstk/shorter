@@ -157,9 +157,8 @@ func TestCompression(t *testing.T) {
 		r.ServeHTTP(w, request)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		// decoded, _ := middlewares.Decompress(w.Body.Bytes())
-		// assert.Equal(t, config.Config.BaseURL+"/"+shortURL, string(decoded))
-		// assert.Equal(t, "application/x-gzip", w.Header().Get("Content-Type"))
-		assert.Equal(t, config.Config.BaseURL+"/"+shortURL, w.Body.String())
+		decoded, _ := middlewares.Decompress(w.Body.Bytes())
+		assert.Equal(t, config.Config.BaseURL+"/"+shortURL, string(decoded))
+		assert.Equal(t, "gzip", w.Header().Get("Content-Encoding"))
 	})
 }
