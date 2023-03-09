@@ -1,9 +1,47 @@
 package config
 
-import "fmt"
+import (
+	"flag"
+	"fmt"
+	"log"
 
-const ServerPort = "8080"
-const ServerHost = "localhost"
-const ServerSchema = "http"
+	"github.com/caarlos0/env/v6"
+)
 
-var ServerBaseURL = fmt.Sprintf("%s://%s:%s", ServerSchema, ServerHost, ServerPort)
+type AppConfig struct {
+	ServerAddress   string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	Schema          string
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+}
+
+var Config AppConfig
+var ServerBaseURL string
+
+func InitConfig() {
+	Config.Schema = "http"
+
+	parseCliArguments()
+	parseEnvVariables()
+
+	ServerBaseURL = fmt.Sprintf("%s://%s", Config.Schema, Config.ServerAddress)
+}
+
+func parseCliArguments() {
+	serverAddress := flag.String("a", "localhost:8080", "server address")
+	baseURL := flag.String("b", "http://localhost:8080", "base server address")
+	fileStoragePath := flag.String("f", "storage/storage.json", "file storage path")
+
+	flag.Parse()
+
+	Config.ServerAddress = *serverAddress
+	Config.BaseURL = *baseURL
+	Config.FileStoragePath = *fileStoragePath
+}
+
+func parseEnvVariables() {
+	err := env.Parse(&Config)
+	if err != nil {
+		log.Fatal(err)
+	}
+}

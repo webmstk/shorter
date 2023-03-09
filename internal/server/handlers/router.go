@@ -5,9 +5,14 @@ import (
 	"github.com/webmstk/shorter/internal/storage"
 )
 
-func SetupRouter(linksStorage storage.Storage) *gin.Engine {
-	r := gin.Default()
+func SetupRouter(r *gin.Engine, linksStorage storage.Storage) *gin.Engine {
 	r.POST("/", HandlerShorten(linksStorage))
 	r.GET("/:shortURL", HandlerExpand(linksStorage))
+
+	apiGroup := r.Group("/api")
+	{
+		apiGroup.POST("/shorten", HandlerAPIShorten(linksStorage))
+	}
+
 	return r
 }

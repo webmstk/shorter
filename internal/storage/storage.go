@@ -3,6 +3,8 @@ package storage
 import (
 	"hash/fnv"
 	"strconv"
+
+	"github.com/webmstk/shorter/internal/config"
 )
 
 type Storage interface {
@@ -10,26 +12,12 @@ type Storage interface {
 	GetLongURL(shortURL string) (longURL string, ok bool)
 }
 
-type MapStorage map[string]string
-
-func NewStorage() MapStorage {
-	return make(MapStorage)
-}
-
-func (urls MapStorage) SaveLongURL(longURL string) (shortURL string, err error) {
-	shortURL, err = GenerateShortLink(longURL)
-	if err != nil {
-		return "", err
+func NewStorage() Storage {
+	if config.Config.FileStoragePath == "" {
+		return &StorageMap{data: make(map[string]string)}
+	} else {
+		return &StorageFile{filePath: config.Config.FileStoragePath}
 	}
-	// не буду искать, была ли сохранена ссылка ранее, перезапишу ключ, благо хеш
-	// сгенерится такой же
-	urls[shortURL] = longURL
-	return shortURL, nil
-}
-
-func (urls MapStorage) GetLongURL(shortURL string) (longURL string, ok bool) {
-	longURL, ok = urls[shortURL]
-	return
 }
 
 func GenerateShortLink(s string) (string, error) {
