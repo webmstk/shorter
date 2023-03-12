@@ -11,7 +11,7 @@ import (
 	"github.com/webmstk/shorter/internal/storage"
 )
 
-func TestHandlerApiExpand(t *testing.T) {
+func TestHandlerAPIExpand(t *testing.T) {
 	setupTestConfig(&config.Config)
 	linksStorage := storage.NewStorage()
 
@@ -36,7 +36,7 @@ func TestHandlerApiExpand(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  201,
-				body:        `{"result":"` + config.Config.BaseURL + "/" + generateShortLink("https://ya.ru") + `"}`,
+				body:        `{"result":"` + absoluteLink(generateShortLink("https://ya.ru")) + `"}`,
 			},
 		},
 		{
@@ -62,6 +62,74 @@ func TestHandlerApiExpand(t *testing.T) {
 			r.ServeHTTP(w, request)
 
 			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			assert.Equal(t, tt.want.statusCode, w.Code)
+			assert.Equal(t, tt.want.body, w.Body.String())
+		})
+	}
+}
+
+func TestHandlerAPIUserLinks(t *testing.T) {
+	setupTestConfig(&config.Config)
+	r := setupServer(nil)
+
+	longURL := "http://ya.ru"
+	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(longURL))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, request)
+	result := w.Result()
+	defer result.Body.Close()
+
+	var userID *http.Cookie
+	var userToken *http.Cookie
+
+	for _, cookie := range result.Cookies() {
+		if cookie.Name == "user_id" {
+			userID = cookie
+		}
+		if cookie.Name == "user_token" {
+			userToken = cookie
+		}
+	}
+
+	type want struct {
+		statusCode int
+		body       string
+	}
+
+	tests := []struct {
+		name      string
+		userID    *http.Cookie
+		userToken *http.Cookie
+		want      want
+	}{
+		{
+			name:      "with valid auth",
+			userID:    userID,
+			userToken: userToken,
+			want: want{
+				statusCode: 200,
+				body:       `[{"original_url":"` + longURL + `","short_url":"` + absoluteLink(generateShortLink(longURL)) + `"}]`,
+			},
+		},
+		{
+			name:      "with invalid auth",
+			userID:    &http.Cookie{},
+			userToken: &http.Cookie{},
+			want: want{
+				statusCode: 204,
+				body:       "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+			request.AddCookie(tt.userID)
+			request.AddCookie(tt.userToken)
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, request)
 			assert.Equal(t, tt.want.statusCode, w.Code)
 			assert.Equal(t, tt.want.body, w.Body.String())
 		})

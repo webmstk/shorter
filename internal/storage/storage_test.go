@@ -27,25 +27,33 @@ func TestGenerateShortLink(t *testing.T) {
 
 func TestSaveLongURL(t *testing.T) {
 	tests := []struct {
-		name  string
-		value string
-		want  string
+		name   string
+		value  string
+		userID string
+		want   string
 	}{
 		{name: "value", value: "https://ya.ru", want: "2138586483"},
 		{name: "same value", value: "https://ya.ru", want: "2138586483"},
 		{name: "another value", value: "https://yandex.ru", want: "1250700976"},
+		{name: "value", value: "https://ya.ru", userID: "123", want: "2138586483"},
 	}
 
-	storageMap := &StorageMap{data: make(map[string]string)}
+	storageMap := &StorageMap{data: make(map[string]table)}
 
 	for _, tt := range tests {
-		shortURL, err := storageMap.SaveLongURL(tt.value)
+		shortURL, err := storageMap.SaveLongURL(tt.value, tt.userID)
 		longURL, ok := storageMap.GetLongURL(shortURL)
 
 		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
+
+		userLinks, ok := storageMap.GetUserLinks(tt.userID)
+		if tt.userID != "" {
+			require.True(t, ok)
+			assert.Equal(t, tt.want, userLinks[0])
+		}
 	}
 
 	path := "../../storage/storage_test.json"
@@ -53,20 +61,26 @@ func TestSaveLongURL(t *testing.T) {
 	defer os.Remove(path)
 
 	for _, tt := range tests {
-		shortURL, err := storageFile.SaveLongURL(tt.value)
+		shortURL, err := storageFile.SaveLongURL(tt.value, tt.userID)
 		longURL, ok := storageFile.GetLongURL(shortURL)
 
 		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
+
+		if tt.userID != "" {
+			userLinks, ok := storageFile.GetUserLinks(tt.userID)
+			require.True(t, ok)
+			assert.Equal(t, tt.want, userLinks[0])
+		}
 	}
 }
 
 func TestGetLongURL(t *testing.T) {
-	storageMap := &StorageMap{data: make(map[string]string)}
+	storageMap := &StorageMap{data: make(map[string]table)}
 	link := "https://ya.ru"
-	shortURL, _ := storageMap.SaveLongURL(link)
+	shortURL, _ := storageMap.SaveLongURL(link, "")
 
 	type want struct {
 		link string
@@ -106,7 +120,7 @@ func TestGetLongURL(t *testing.T) {
 	storageFile := &StorageFile{filePath: path}
 	defer os.Remove(path)
 
-	_, err := storageFile.SaveLongURL(link)
+	_, err := storageFile.SaveLongURL(link, "")
 	if err != nil {
 		panic(err)
 	}

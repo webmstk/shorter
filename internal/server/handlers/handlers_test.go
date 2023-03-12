@@ -44,7 +44,7 @@ func TestHandlerShorten(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        config.Config.BaseURL + "/" + generateShortLink("https://ya.ru"),
+				body:        absoluteLink(generateShortLink("https://ya.ru")),
 			},
 		},
 		{
@@ -54,7 +54,7 @@ func TestHandlerShorten(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        config.Config.BaseURL + "/" + generateShortLink("https://ya.ru"),
+				body:        absoluteLink(generateShortLink("https://ya.ru")),
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func TestHandlerShorten(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        config.Config.BaseURL + "/" + generateShortLink("https://yandex.ru"),
+				body:        absoluteLink(generateShortLink("https://yandex.ru")),
 			},
 		},
 	}
@@ -89,7 +89,7 @@ func TestHandlerExpand(t *testing.T) {
 	setupTestConfig(&config.Config)
 
 	linksStorage := storage.NewStorage()
-	shortURL, _ := linksStorage.SaveLongURL("https://yandex.ru")
+	shortURL, _ := linksStorage.SaveLongURL("https://yandex.ru", "")
 
 	type want struct {
 		contentType string
@@ -137,12 +137,106 @@ func TestHandlerExpand(t *testing.T) {
 	}
 }
 
+func TestHandlerShortenCookie(t *testing.T) {
+	setupTestConfig(&config.Config)
+	r := setupServer(nil)
+
+	t.Run("with no cookies", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
+
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+		result := w.Result()
+		defer result.Body.Close()
+
+		var userID *http.Cookie
+		var userToken *http.Cookie
+
+		for _, cookie := range result.Cookies() {
+			if cookie.Name == "user_id" {
+				userID = cookie
+			}
+			if cookie.Name == "user_token" {
+				userToken = cookie
+			}
+		}
+		assert.NotNil(t, userID)
+		assert.NotNil(t, userToken)
+	})
+
+	t.Run("with valid cookie", func(t *testing.T) {
+		cookieID := &http.Cookie{
+			Name:  "user_id",
+			Value: "123",
+		}
+		signed := signCookie("123")
+		cookieToken := &http.Cookie{
+			Name:  "user_token",
+			Value: signed,
+		}
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
+		request.AddCookie(cookieID)
+		request.AddCookie(cookieToken)
+
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+		result := w.Result()
+		defer result.Body.Close()
+
+		var userID *http.Cookie
+		var userToken *http.Cookie
+
+		for _, cookie := range result.Cookies() {
+			if cookie.Name == "user_id" {
+				userID = cookie
+			}
+			if cookie.Name == "user_token" {
+				userToken = cookie
+			}
+		}
+		assert.Equal(t, userID.Value, cookieID.Value)
+		assert.Equal(t, userToken.Value, cookieToken.Value)
+	})
+
+	t.Run("with invalid cookie", func(t *testing.T) {
+		cookieID := &http.Cookie{
+			Name:  "user_id",
+			Value: "123",
+		}
+		cookieToken := &http.Cookie{
+			Name:  "user_token",
+			Value: "wrong_token",
+		}
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
+		request.AddCookie(cookieID)
+		request.AddCookie(cookieToken)
+
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+		result := w.Result()
+		defer result.Body.Close()
+
+		var userID *http.Cookie
+		var userToken *http.Cookie
+		for _, cookie := range result.Cookies() {
+			if cookie.Name == "user_id" {
+				userID = cookie
+			}
+			if cookie.Name == "user_token" {
+				userToken = cookie
+			}
+		}
+		assert.NotEqual(t, userID.Value, cookieID.Value)
+		assert.NotEqual(t, userToken.Value, cookieToken.Value)
+	})
+}
+
 func TestCompression(t *testing.T) {
 	setupTestConfig(&config.Config)
 
 	longURL := "https://ya.ru"
 	linksStorage := storage.NewStorage()
-	shortURL, _ := linksStorage.SaveLongURL(longURL)
+	shortURL, _ := linksStorage.SaveLongURL(longURL, "")
 	data, _ := middlewares.Compress([]byte(longURL))
 
 	t.Run("gzip compression", func(t *testing.T) {
@@ -158,7 +252,7 @@ func TestCompression(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 		decoded, _ := middlewares.Decompress(w.Body.Bytes())
-		assert.Equal(t, config.Config.BaseURL+"/"+shortURL, string(decoded))
+		assert.Equal(t, absoluteLink(shortURL), string(decoded))
 		assert.Equal(t, "gzip", w.Header().Get("Content-Encoding"))
 	})
 }

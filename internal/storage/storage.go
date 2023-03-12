@@ -8,13 +8,17 @@ import (
 )
 
 type Storage interface {
-	SaveLongURL(longURL string) (shortURL string, err error)
+	SaveLongURL(longURL, userID string) (shortURL string, err error)
 	GetLongURL(shortURL string) (longURL string, ok bool)
+	CreateUser() string
+	GetUserLinks(UserID string) (links []string, ok bool)
 }
+
+type table map[string]any
 
 func NewStorage() Storage {
 	if config.Config.FileStoragePath == "" {
-		return &StorageMap{data: make(map[string]string)}
+		return &StorageMap{data: make(map[string]table)}
 	} else {
 		return &StorageFile{filePath: config.Config.FileStoragePath}
 	}
@@ -27,4 +31,12 @@ func GenerateShortLink(s string) (string, error) {
 		return "", err
 	}
 	return strconv.Itoa(int(h.Sum32())), nil
+}
+
+func getTable(data map[string]table, tableName string) table {
+	if data[tableName] == nil {
+		data[tableName] = table{}
+	}
+
+	return data[tableName]
 }

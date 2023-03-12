@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"fmt"
 	"net/http"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
@@ -19,14 +23,30 @@ func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		shortURL, err := storage.SaveLongURL(longURL)
+		userID, _ := c.Cookie("user_id")
+		userToken, _ := c.Cookie("user_token")
+		if userID == "" {
+			userID = storage.CreateUser()
+			userToken = signCookie(userID)
+		} else if !isTokenValid(userID, userToken) {
+			userID = storage.CreateUser()
+			userToken = signCookie(userID)
+		}
+
+		shortURL, err := storage.SaveLongURL(longURL, userID)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Failed to generate short link")
 			return
 		}
 
-		c.String(http.StatusCreated, config.Config.BaseURL+"/"+shortURL)
+		c.SetCookie("user_id", userID, config.Config.CookieTTLSeconds, "/", config.Config.ServerAddress, false, true)
+		c.SetCookie("user_token", userToken, config.Config.CookieTTLSeconds, "/", config.Config.ServerAddress, false, true)
+		c.String(http.StatusCreated, absoluteLink(shortURL))
 	}
+}
+
+func isTokenValid(userID string, userToken string) bool {
+	return signCookie(userID) == userToken
 }
 
 func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
@@ -39,5 +59,24 @@ func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
 		} else {
 			c.String(http.StatusNotFound, "Short url not found")
 		}
+	}
+}
+
+func signCookie(content string) string {
+	key := []uint8(config.Config.CookieSalt)
+
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(content))
+	dst := h.Sum(nil)
+
+	return fmt.Sprintf("%x", dst)
+}
+
+func absoluteLink(path string) string {
+	firstRune, _ := utf8.DecodeRuneInString(path)
+	if string(firstRune) == "/" {
+		return config.Config.BaseURL + path
+	} else {
+		return config.Config.BaseURL + "/" + path
 	}
 }

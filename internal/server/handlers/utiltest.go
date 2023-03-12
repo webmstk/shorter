@@ -31,4 +31,6 @@ func setupTestConfig(config *config.AppConfig) {
 	config.ServerAddress = "localhost:8080"
 	config.BaseURL = "http://localhost:8080"
 	config.FileStoragePath = ""
+	config.CookieTTLSeconds = 120
+	config.CookieSalt = "secret"
 }
