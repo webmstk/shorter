@@ -12,6 +12,7 @@ func SetupRouter(r *gin.Engine, linksStorage storage.Storage) *gin.Engine {
 	apiGroup := r.Group("/api")
 	{
 		apiGroup.POST("/shorten", HandlerAPIShorten(linksStorage))
+		apiGroup.GET("/user/urls", HandlerAPIUserUrls(linksStorage))
 	}
 
 	return r

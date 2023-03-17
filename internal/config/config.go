@@ -9,10 +9,12 @@ import (
 )
 
 type AppConfig struct {
-	ServerAddress   string `env:"SERVER_ADDRESS"`
-	BaseURL         string `env:"BASE_URL"`
-	Schema          string
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	ServerAddress    string `env:"SERVER_ADDRESS"`
+	BaseURL          string `env:"BASE_URL"`
+	Schema           string
+	FileStoragePath  string `env:"FILE_STORAGE_PATH"`
+	CookieSalt       string `env:"COOKIE_SALT" envDefault:"ABRVAL6"`
+	CookieTTLSeconds int    `env:"COOKIE_TTL_SECONDS" envDefault:"604800"`
 }
 
 var Config AppConfig

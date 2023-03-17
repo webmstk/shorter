@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,7 @@ func Compressor() gin.HandlerFunc {
 				abortWithError(c, err)
 				return
 			}
-			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(newBody))
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(newBody))
 		}
 
 		// Encoding response
