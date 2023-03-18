@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/server/engine"
 	"github.com/webmstk/shorter/internal/storage"
 )
@@ -25,12 +24,4 @@ func setupServer(s storage.Storage) *gin.Engine {
 		linksStorage = storage.NewStorage()
 	}
 	return SetupRouter(r, linksStorage)
-}
-
-func setupTestConfig(config *config.AppConfig) {
-	config.ServerAddress = "localhost:8080"
-	config.BaseURL = "http://localhost:8080"
-	config.FileStoragePath = ""
-	config.CookieTTLSeconds = 120
-	config.CookieSalt = "secret"
 }

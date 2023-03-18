@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"log"
 	"net/http"
 	"unicode/utf8"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
@@ -59,6 +63,26 @@ func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
 		} else {
 			c.String(http.StatusNotFound, "Short url not found")
 		}
+	}
+}
+
+func HandlerPing(storage storage.Storage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conn, err := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
+		if err != nil {
+			log.Print("DB failure: ", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		defer conn.Close(context.Background())
+
+		_, err = conn.Query(context.Background(), "SELECT 1")
+		if err != nil {
+			log.Print("DB failure: ", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
 	}
 }
 

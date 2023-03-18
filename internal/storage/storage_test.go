@@ -6,7 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/webmstk/shorter/internal/tests"
 )
+
+func TestMain(m *testing.M) {
+	tests.Setup()
+	os.Exit(m.Run())
+}
 
 func TestGenerateShortLink(t *testing.T) {
 	tests := []struct {
