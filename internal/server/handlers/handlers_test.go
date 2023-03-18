@@ -7,14 +7,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/server/middlewares"
 	"github.com/webmstk/shorter/internal/storage"
 )
 
 func TestHandlerShorten(t *testing.T) {
-	setupTestConfig(&config.Config)
-
 	type want struct {
 		contentType string
 		statusCode  int
@@ -86,8 +83,6 @@ func TestHandlerShorten(t *testing.T) {
 }
 
 func TestHandlerExpand(t *testing.T) {
-	setupTestConfig(&config.Config)
-
 	linksStorage := storage.NewStorage()
 	shortURL, _ := linksStorage.SaveLongURL("https://yandex.ru", "")
 
@@ -137,8 +132,17 @@ func TestHandlerExpand(t *testing.T) {
 	}
 }
 
+// func TestHandlerPing(t *testing.T) {
+// 	t.Run("test ping", func(t *testing.T) {
+// 		r := setupServer(nil)
+// 		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
+// 		w := httptest.NewRecorder()
+// 		r.ServeHTTP(w, request)
+// 		assert.Equal(t, http.StatusOK, w.Code)
+// 	})
+// }
+
 func TestHandlerShortenCookie(t *testing.T) {
-	setupTestConfig(&config.Config)
 	r := setupServer(nil)
 
 	t.Run("with no cookies", func(t *testing.T) {
@@ -232,8 +236,6 @@ func TestHandlerShortenCookie(t *testing.T) {
 }
 
 func TestCompression(t *testing.T) {
-	setupTestConfig(&config.Config)
-
 	longURL := "https://ya.ru"
 	linksStorage := storage.NewStorage()
 	shortURL, _ := linksStorage.SaveLongURL(longURL, "")

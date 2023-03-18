@@ -7,12 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/storage"
 )
 
 func TestHandlerAPIExpand(t *testing.T) {
-	setupTestConfig(&config.Config)
 	linksStorage := storage.NewStorage()
 
 	type want struct {
@@ -69,7 +67,6 @@ func TestHandlerAPIExpand(t *testing.T) {
 }
 
 func TestHandlerAPIUserLinks(t *testing.T) {
-	setupTestConfig(&config.Config)
 	r := setupServer(nil)
 
 	longURL := "http://ya.ru"
