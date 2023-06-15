@@ -34,7 +34,7 @@ func parseCliArguments() {
 	serverAddress := flag.String("a", "localhost:8080", "server address")
 	baseURL := flag.String("b", "http://localhost:8080", "base server address")
 	fileStoragePath := flag.String("f", "storage/storage.json", "file storage path")
-	database := flag.String("d", "postgres://postgres:@localhost:5432/shorter?sslmode=disable", "database DSN")
+	database := flag.String("d", "", "database DSN")
 
 	flag.Parse()
 
