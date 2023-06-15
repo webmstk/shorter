@@ -1,9 +1,12 @@
 package storage
 
 import (
+	"context"
 	"hash/fnv"
+	"log"
 	"strconv"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/webmstk/shorter/internal/config"
 )
 
@@ -17,11 +20,30 @@ type Storage interface {
 type table map[string]any
 
 func NewStorage() Storage {
-	if config.Config.FileStoragePath == "" {
-		return &StorageMap{data: make(map[string]table)}
+	if config.Config.DatabaseDSN != "" {
+		return NewStorageDB()
+	} else if config.Config.FileStoragePath == "" {
+		return NewStorageMap()
 	} else {
-		return &StorageFile{filePath: config.Config.FileStoragePath}
+		return NewStorageFile()
 	}
+}
+
+func NewStorageMap() *StorageMap {
+	return &StorageMap{data: make(map[string]table)}
+}
+
+func NewStorageFile() *StorageFile {
+	return &StorageFile{filePath: config.Config.FileStoragePath}
+}
+
+func NewStorageDB() *StorageDB {
+	pool, err := pgxpool.New(context.Background(), config.Config.DatabaseDSN)
+	if err != nil {
+		log.Fatal("DB failure: ", err)
+	}
+
+	return &StorageDB{pool: pool}
 }
 
 func GenerateShortLink(s string) (string, error) {

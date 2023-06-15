@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/webmstk/shorter/internal/server/middlewares"
 	"github.com/webmstk/shorter/internal/storage"
 )
@@ -132,18 +133,19 @@ func TestHandlerExpand(t *testing.T) {
 	}
 }
 
-// func TestHandlerPing(t *testing.T) {
-// 	t.Run("test ping", func(t *testing.T) {
-// 		r := setupServer(nil)
-// 		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
-// 		w := httptest.NewRecorder()
-// 		r.ServeHTTP(w, request)
-// 		assert.Equal(t, http.StatusOK, w.Code)
-// 	})
-// }
+func TestHandlerPing(t *testing.T) {
+	t.Run("test ping", func(t *testing.T) {
+		r := setupServer(nil)
+		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
 
 func TestHandlerShortenCookie(t *testing.T) {
-	r := setupServer(nil)
+	linksStorage := storage.NewStorage()
+	r := setupServer(linksStorage)
 
 	t.Run("with no cookies", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
@@ -169,11 +171,12 @@ func TestHandlerShortenCookie(t *testing.T) {
 	})
 
 	t.Run("with valid cookie", func(t *testing.T) {
+		user := linksStorage.CreateUser()
 		cookieID := &http.Cookie{
 			Name:  "user_id",
-			Value: "123",
+			Value: user,
 		}
-		signed := signCookie("123")
+		signed := signCookie(user)
 		cookieToken := &http.Cookie{
 			Name:  "user_token",
 			Value: signed,
@@ -198,6 +201,7 @@ func TestHandlerShortenCookie(t *testing.T) {
 				userToken = cookie
 			}
 		}
+		require.Equal(t, http.StatusCreated, w.Code)
 		assert.Equal(t, userID.Value, cookieID.Value)
 		assert.Equal(t, userToken.Value, cookieToken.Value)
 	})

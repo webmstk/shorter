@@ -6,13 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/webmstk/shorter/internal/tests"
+	"github.com/webmstk/shorter/internal/config"
 )
-
-func TestMain(m *testing.M) {
-	tests.Setup()
-	os.Exit(m.Run())
-}
 
 func TestGenerateShortLink(t *testing.T) {
 	tests := []struct {
@@ -33,21 +28,26 @@ func TestGenerateShortLink(t *testing.T) {
 
 func TestSaveLongURL(t *testing.T) {
 	tests := []struct {
-		name   string
-		value  string
-		userID string
-		want   string
+		name  string
+		value string
+		user  bool
+		want  string
 	}{
-		{name: "value", value: "https://ya.ru", want: "2138586483"},
-		{name: "same value", value: "https://ya.ru", want: "2138586483"},
-		{name: "another value", value: "https://yandex.ru", want: "1250700976"},
-		{name: "value", value: "https://ya.ru", userID: "123", want: "2138586483"},
+		{name: "value", value: "https://ya1.ru", want: "3144338548"},
+		{name: "same value", value: "https://ya1.ru", want: "3144338548"},
+		{name: "another value", value: "https://yandex2.ru", want: "119677240"},
+		{name: "value", value: "https://ya1.ru", user: true, want: "3144338548"},
 	}
 
 	storageMap := &StorageMap{data: make(map[string]table)}
+	userID := storageMap.CreateUser()
 
 	for _, tt := range tests {
-		shortURL, err := storageMap.SaveLongURL(tt.value, tt.userID)
+		user := ""
+		if tt.user {
+			user = userID
+		}
+		shortURL, err := storageMap.SaveLongURL(tt.value, user)
 		longURL, ok := storageMap.GetLongURL(shortURL)
 
 		require.NoError(t, err)
@@ -55,8 +55,8 @@ func TestSaveLongURL(t *testing.T) {
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
 
-		userLinks, ok := storageMap.GetUserLinks(tt.userID)
-		if tt.userID != "" {
+		userLinks, ok := storageMap.GetUserLinks(user)
+		if user != "" {
 			require.True(t, ok)
 			assert.Equal(t, tt.want, userLinks[0])
 		}
@@ -64,10 +64,15 @@ func TestSaveLongURL(t *testing.T) {
 
 	path := "../../storage/storage_test.json"
 	storageFile := &StorageFile{filePath: path}
+	userID = storageFile.CreateUser()
 	defer os.Remove(path)
 
 	for _, tt := range tests {
-		shortURL, err := storageFile.SaveLongURL(tt.value, tt.userID)
+		user := ""
+		if tt.user {
+			user = userID
+		}
+		shortURL, err := storageFile.SaveLongURL(tt.value, user)
 		longURL, ok := storageFile.GetLongURL(shortURL)
 
 		require.NoError(t, err)
@@ -75,10 +80,34 @@ func TestSaveLongURL(t *testing.T) {
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
 
-		if tt.userID != "" {
-			userLinks, ok := storageFile.GetUserLinks(tt.userID)
+		if user != "" {
+			userLinks, ok := storageFile.GetUserLinks(user)
 			require.True(t, ok)
 			assert.Equal(t, tt.want, userLinks[0])
+		}
+	}
+
+	if config.Config.DatabaseDSN != "" {
+		storageDB := NewStorageDB()
+		userID = storageDB.CreateUser()
+		for _, tt := range tests {
+			user := ""
+			if tt.user {
+				user = userID
+			}
+			shortURL, err := storageDB.SaveLongURL(tt.value, user)
+			longURL, ok := storageDB.GetLongURL(shortURL)
+
+			require.NoError(t, err)
+			require.True(t, ok)
+			assert.Equal(t, tt.want, shortURL)
+			assert.Equal(t, tt.value, longURL)
+
+			userLinks, ok := storageDB.GetUserLinks(user)
+			if user != "" {
+				require.True(t, ok)
+				assert.Equal(t, tt.want, userLinks[0])
+			}
 		}
 	}
 }
@@ -135,5 +164,20 @@ func TestGetLongURL(t *testing.T) {
 		longURL, ok := storageFile.GetLongURL(tt.value)
 		assert.Equal(t, tt.want.ok, ok)
 		assert.Equal(t, tt.want.link, longURL)
+	}
+
+	if config.Config.DatabaseDSN != "" {
+		storageDB := NewStorageDB()
+
+		_, err = storageDB.SaveLongURL(link, "")
+		if err != nil {
+			panic(err)
+		}
+
+		for _, tt := range tests {
+			longURL, ok := storageDB.GetLongURL(tt.value)
+			assert.Equal(t, tt.want.ok, ok)
+			assert.Equal(t, tt.want.link, longURL)
+		}
 	}
 }

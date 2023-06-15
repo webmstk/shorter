@@ -1,15 +1,12 @@
 package handlers
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
-	"log"
 	"net/http"
+	"strings"
 	"unicode/utf8"
-
-	"github.com/jackc/pgx/v5"
 
 	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
@@ -43,8 +40,9 @@ func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		c.SetCookie("user_id", userID, config.Config.CookieTTLSeconds, "/", config.Config.ServerAddress, false, true)
-		c.SetCookie("user_token", userToken, config.Config.CookieTTLSeconds, "/", config.Config.ServerAddress, false, true)
+		host := strings.Split(config.Config.ServerAddress, ":")[0]
+		c.SetCookie("user_id", userID, config.Config.CookieTTLSeconds, "/", host, false, true)
+		c.SetCookie("user_token", userToken, config.Config.CookieTTLSeconds, "/", host, false, true)
 		c.String(http.StatusCreated, absoluteLink(shortURL))
 	}
 }
@@ -66,23 +64,20 @@ func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
 	}
 }
 
-func HandlerPing(storage storage.Storage) gin.HandlerFunc {
+func HandlerPing(store storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		conn, err := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
-		if err != nil {
-			log.Print("DB failure: ", err)
-			c.Status(http.StatusInternalServerError)
-			return
-		}
-		defer conn.Close(context.Background())
+		switch s := store.(type) {
+		case *storage.StorageDB:
+			err := s.Ping()
+			if err != nil {
+				c.Status(http.StatusInternalServerError)
+				return
+			}
 
-		_, err = conn.Query(context.Background(), "SELECT 1")
-		if err != nil {
-			log.Print("DB failure: ", err)
-			c.Status(http.StatusInternalServerError)
-			return
+			c.Status(http.StatusOK)
+		default:
+			c.Status(http.StatusOK)
 		}
-		c.Status(http.StatusOK)
 	}
 }
 
