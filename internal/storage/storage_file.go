@@ -105,6 +105,24 @@ func (fs *StorageFile) CreateUser() string {
 	return uuid.New().String()
 }
 
+func (fs *StorageFile) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
+	var output []BatchOutput
+	for _, record := range records {
+		shortURL, err := fs.SaveLongURL(record.OriginalURL, "")
+		if err != nil {
+			return output, err
+		}
+
+		batchOutput := BatchOutput{
+			CorrelationID: record.CorrelationID,
+			ShortURL:      shortURL,
+		}
+		output = append(output, batchOutput)
+	}
+
+	return output, nil
+}
+
 func parseFile(file *os.File) (content map[string]table, err error) {
 	stat, err := file.Stat()
 	if err != nil {

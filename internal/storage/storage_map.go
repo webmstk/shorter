@@ -60,3 +60,21 @@ func (storage *StorageMap) GetUserLinks(userID string) (links []string, ok bool)
 func (storage *StorageMap) CreateUser() string {
 	return uuid.New().String()
 }
+
+func (storage *StorageMap) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
+	var output []BatchOutput
+	for _, record := range records {
+		shortURL, err := storage.SaveLongURL(record.OriginalURL, "")
+		if err != nil {
+			return output, err
+		}
+
+		batchOutput := BatchOutput{
+			CorrelationID: record.CorrelationID,
+			ShortURL:      shortURL,
+		}
+		output = append(output, batchOutput)
+	}
+
+	return output, nil
+}

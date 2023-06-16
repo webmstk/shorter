@@ -37,22 +37,11 @@ func Init() {
 
 	createUserLinksIndex := `CREATE UNIQUE INDEX IF NOT EXISTS userid_linkid ON user_links(user_id, link_id)`
 
-	log.Println("--- CREATING ---")
-	log.Println("users table creating")
 	runQuery(conn, createUsers)
-	log.Println("users table created")
-	log.Println("links table creating")
 	runQuery(conn, createLinks)
-	log.Println("links table created")
 
-	log.Println("user_links table creating")
 	runQuery(conn, createUserLinks)
-	log.Println("user_links table created")
-	log.Println("user_links index creating")
 	runQuery(conn, createUserLinksIndex)
-	log.Println("user_links index created")
-
-	log.Println("--- DONE ---")
 }
 
 func runQuery(conn *pgx.Conn, sql string) {
