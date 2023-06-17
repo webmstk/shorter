@@ -48,6 +48,39 @@ func HandlerAPIShorten(storage storage.Storage) gin.HandlerFunc {
 	}
 }
 
+func HandlerAPIShortenBatch(store storage.Storage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Content-Type", "application/json")
+		if !util.ValidateContentTypeJSON(c, "application/json") {
+			return
+		}
+
+		body, _ := util.ReadBody(c)
+		var reqBody []storage.BatchInput
+
+		err := json.Unmarshal([]byte(body), &reqBody)
+		if err != nil {
+			response := util.WriteJSONError(c, "url is not valid")
+			c.String(http.StatusBadRequest, response)
+			return
+		}
+
+		output, err := store.SaveBatch(reqBody)
+		if err != nil {
+			response := util.WriteJSONError(c, "failed to save some links")
+			c.String(http.StatusBadRequest, response)
+			return
+		}
+
+		var result []storage.BatchOutput
+		for _, elem := range output {
+			elem.ShortURL = absoluteLink(elem.ShortURL)
+			result = append(result, elem)
+		}
+		c.JSON(http.StatusCreated, result)
+	}
+}
+
 func HandlerAPIUserUrls(storage storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Cookie("user_id")

@@ -15,6 +15,17 @@ type Storage interface {
 	GetLongURL(shortURL string) (longURL string, ok bool)
 	CreateUser() string
 	GetUserLinks(UserID string) (links []string, ok bool)
+	SaveBatch(records []BatchInput) ([]BatchOutput, error)
+}
+
+type BatchInput struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
+type BatchOutput struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
 }
 
 type table map[string]any

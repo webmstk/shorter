@@ -181,3 +181,51 @@ func TestGetLongURL(t *testing.T) {
 		}
 	}
 }
+
+func TestSaveBatch(t *testing.T) {
+	storageMap := &StorageMap{data: make(map[string]table)}
+
+	tests := []struct {
+		name  string
+		input []BatchInput
+		want  []BatchOutput
+	}{
+		{
+			name: "test_1",
+			input: []BatchInput{
+				{CorrelationID: "111", OriginalURL: "http://lelik.ru"},
+				{CorrelationID: "222", OriginalURL: "http://bolik.ru"},
+			},
+			want: []BatchOutput{
+				{CorrelationID: "111", ShortURL: "3799407019"},
+				{CorrelationID: "222", ShortURL: "2114288767"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		output, err := storageMap.SaveBatch(tt.input)
+		require.NoError(t, err)
+		assert.Equal(t, tt.want, output)
+	}
+
+	path := "../../storage/storage_test.json"
+	storageFile := &StorageFile{filePath: path}
+	defer os.Remove(path)
+
+	for _, tt := range tests {
+		output, err := storageFile.SaveBatch(tt.input)
+		require.NoError(t, err)
+		assert.Equal(t, tt.want, output)
+	}
+
+	if config.Config.DatabaseDSN != "" {
+		storageDB := NewStorageDB()
+
+		for _, tt := range tests {
+			output, err := storageDB.SaveBatch(tt.input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, output)
+		}
+	}
+}

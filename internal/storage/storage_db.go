@@ -72,6 +72,35 @@ func (db *StorageDB) GetUserLinks(userID string) (links []string, ok bool) {
 	return links, true
 }
 
+func (db *StorageDB) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
+	var output []BatchOutput
+
+	batch := &pgx.Batch{}
+	for _, record := range records {
+		shortURL, err := GenerateShortLink(record.OriginalURL)
+		if err != nil {
+			return output, nil
+		}
+
+		batch.Queue(`INSERT INTO links(long_url, short_url) VALUES ($1, $2) ON CONFLICT(long_url) DO NOTHING`, record.OriginalURL, shortURL)
+
+		batchOutput := BatchOutput{
+			CorrelationID: record.CorrelationID,
+			ShortURL:      shortURL,
+		}
+		output = append(output, batchOutput)
+	}
+
+	br := db.pool.SendBatch(context.Background(), batch)
+
+	_, err := br.Exec()
+	if err != nil {
+		return output, err
+	}
+
+	return output, nil
+}
+
 func (db *StorageDB) Ping() error {
 	return db.pool.Ping(context.Background())
 }

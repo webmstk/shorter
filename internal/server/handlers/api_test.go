@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -131,4 +132,29 @@ func TestHandlerAPIUserLinks(t *testing.T) {
 			assert.Equal(t, tt.want.body, w.Body.String())
 		})
 	}
+}
+
+func TestHandlerAPIBatch(t *testing.T) {
+	t.Run("test ping", func(t *testing.T) {
+		r := setupServer(nil)
+		body := `[
+  { "correlation_id": "111", "original_url": "http://rebro.ru" },
+  { "correlation_id": "222", "original_url": "http://reshka.ru" }
+]`
+		request := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+
+		expectedBody := []storage.BatchOutput{
+			{CorrelationID: "111", ShortURL: absoluteLink("886043032")},
+			{CorrelationID: "222", ShortURL: absoluteLink("2657218682")},
+		}
+
+		var actualBody []storage.BatchOutput
+		json.Unmarshal(w.Body.Bytes(), &actualBody)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		assert.Equal(t, expectedBody, actualBody)
+	})
 }
