@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,7 @@ import (
 	"github.com/webmstk/shorter/internal/storage"
 )
 
-func HandlerAPIShorten(storage storage.Storage) gin.HandlerFunc {
+func HandlerAPIShorten(store storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Content-Type", "application/json")
 		if !util.ValidateContentTypeJSON(c, "application/json") {
@@ -32,11 +33,17 @@ func HandlerAPIShorten(storage storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		shortURL, err := storage.SaveLongURL(reqBody.URL, "")
+		status := http.StatusCreated
+		shortURL, err := store.SaveLongURL(reqBody.URL, "")
 		if err != nil {
-			response := util.WriteJSONError(c, "internal error")
-			c.String(http.StatusInternalServerError, response)
-			return
+			var linkExistError *storage.LinkExistError
+			if errors.As(err, &linkExistError) {
+				status = http.StatusConflict
+			} else {
+				response := util.WriteJSONError(c, "internal error")
+				c.String(http.StatusInternalServerError, response)
+				return
+			}
 		}
 		respBody := struct {
 			Result string `json:"result"`
@@ -44,7 +51,7 @@ func HandlerAPIShorten(storage storage.Storage) gin.HandlerFunc {
 			Result: absoluteLink(shortURL),
 		}
 
-		c.JSON(http.StatusCreated, respBody)
+		c.JSON(status, respBody)
 	}
 }
 

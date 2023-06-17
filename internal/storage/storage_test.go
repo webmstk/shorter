@@ -36,7 +36,7 @@ func TestSaveLongURL(t *testing.T) {
 		{name: "value", value: "https://ya1.ru", want: "3144338548"},
 		{name: "same value", value: "https://ya1.ru", want: "3144338548"},
 		{name: "another value", value: "https://yandex2.ru", want: "119677240"},
-		{name: "value", value: "https://ya1.ru", user: true, want: "3144338548"},
+		{name: "value", value: "https://ya5.ru", user: true, want: "269264536"},
 	}
 
 	storageMap := &StorageMap{data: make(map[string]table)}
@@ -47,10 +47,9 @@ func TestSaveLongURL(t *testing.T) {
 		if tt.user {
 			user = userID
 		}
-		shortURL, err := storageMap.SaveLongURL(tt.value, user)
+		shortURL, _ := storageMap.SaveLongURL(tt.value, user)
 		longURL, ok := storageMap.GetLongURL(shortURL)
 
-		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
@@ -72,10 +71,9 @@ func TestSaveLongURL(t *testing.T) {
 		if tt.user {
 			user = userID
 		}
-		shortURL, err := storageFile.SaveLongURL(tt.value, user)
+		shortURL, _ := storageFile.SaveLongURL(tt.value, user)
 		longURL, ok := storageFile.GetLongURL(shortURL)
 
-		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
@@ -95,10 +93,9 @@ func TestSaveLongURL(t *testing.T) {
 			if tt.user {
 				user = userID
 			}
-			shortURL, err := storageDB.SaveLongURL(tt.value, user)
+			shortURL, _ := storageDB.SaveLongURL(tt.value, user)
 			longURL, ok := storageDB.GetLongURL(shortURL)
 
-			require.NoError(t, err)
 			require.True(t, ok)
 			assert.Equal(t, tt.want, shortURL)
 			assert.Equal(t, tt.value, longURL)

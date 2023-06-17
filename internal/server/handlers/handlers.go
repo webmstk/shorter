@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,7 +15,7 @@ import (
 	"github.com/webmstk/shorter/internal/storage"
 )
 
-func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
+func HandlerShorten(store storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Content-Type", "text/plain")
 
@@ -27,23 +28,30 @@ func HandlerShorten(storage storage.Storage) gin.HandlerFunc {
 		userID, _ := c.Cookie("user_id")
 		userToken, _ := c.Cookie("user_token")
 		if userID == "" {
-			userID = storage.CreateUser()
+			userID = store.CreateUser()
 			userToken = signCookie(userID)
 		} else if !isTokenValid(userID, userToken) {
-			userID = storage.CreateUser()
+			userID = store.CreateUser()
 			userToken = signCookie(userID)
 		}
 
-		shortURL, err := storage.SaveLongURL(longURL, userID)
+		status := http.StatusCreated
+		shortURL, err := store.SaveLongURL(longURL, userID)
+		fmt.Println(err)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Failed to generate short link")
-			return
+			var linkExistError *storage.LinkExistError
+			if errors.As(err, &linkExistError) {
+				status = http.StatusConflict
+			} else {
+				c.String(http.StatusInternalServerError, "Failed to generate short link")
+				return
+			}
 		}
 
 		host := strings.Split(config.Config.ServerAddress, ":")[0]
 		c.SetCookie("user_id", userID, config.Config.CookieTTLSeconds, "/", host, false, true)
 		c.SetCookie("user_token", userToken, config.Config.CookieTTLSeconds, "/", host, false, true)
-		c.String(http.StatusCreated, absoluteLink(shortURL))
+		c.String(status, absoluteLink(shortURL))
 	}
 }
 

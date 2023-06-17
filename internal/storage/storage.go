@@ -28,6 +28,20 @@ type BatchOutput struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type LinkExistError struct {
+	ShortURL string
+}
+
+func (lee *LinkExistError) Error() string {
+	return "link exists"
+}
+
+func NewLinkExistError(shortURL string) error {
+	return &LinkExistError{
+		ShortURL: shortURL,
+	}
+}
+
 type table map[string]any
 
 func NewStorage() Storage {

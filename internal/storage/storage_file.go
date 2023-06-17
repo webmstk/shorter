@@ -33,6 +33,11 @@ func (fs *StorageFile) SaveLongURL(longURL, userID string) (shortURL string, err
 		return "", err
 	}
 
+	conflict := false
+	table := getTable(storage, "links")
+	if _, ok := table[shortURL]; ok {
+		conflict = true
+	}
 	getTable(storage, "links")[shortURL] = longURL
 
 	if userID != "" {
@@ -51,6 +56,10 @@ func (fs *StorageFile) SaveLongURL(longURL, userID string) (shortURL string, err
 	}
 
 	file.WriteAt(data, 0)
+
+	if conflict {
+		return shortURL, NewLinkExistError(shortURL)
+	}
 
 	return shortURL, nil
 }

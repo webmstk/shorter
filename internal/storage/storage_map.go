@@ -21,6 +21,11 @@ func (storage *StorageMap) SaveLongURL(longURL, userID string) (shortURL string,
 	storage.mu.Lock()
 	defer storage.mu.Unlock()
 
+	conflict := false
+	table := getTable(storage.data, "links")
+	if _, ok := table[shortURL]; ok {
+		conflict = true
+	}
 	getTable(storage.data, "links")[shortURL] = longURL
 
 	if userID != "" {
@@ -31,6 +36,9 @@ func (storage *StorageMap) SaveLongURL(longURL, userID string) (shortURL string,
 		} else {
 			userLinks[userID] = append(userLinks[userID].([]string), shortURL)
 		}
+	}
+	if conflict {
+		return shortURL, NewLinkExistError(shortURL)
 	}
 	return shortURL, nil
 }

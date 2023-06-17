@@ -8,11 +8,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/webmstk/shorter/internal/config"
 	"github.com/webmstk/shorter/internal/server/middlewares"
 	"github.com/webmstk/shorter/internal/storage"
 )
 
 func TestHandlerShorten(t *testing.T) {
+	linksStorage := storage.NewStorage()
+
 	type want struct {
 		contentType string
 		statusCode  int
@@ -51,25 +54,29 @@ func TestHandlerShorten(t *testing.T) {
 			body:        "https://ya.ru",
 			want: want{
 				contentType: "text/plain",
-				statusCode:  201,
+				statusCode:  409,
 				body:        absoluteLink(generateShortLink("https://ya.ru")),
 			},
 		},
 		{
 			name:        "second valid link",
 			contentType: "text/plain",
-			body:        "https://yandex.ru",
+			body:        "https://yandez.ru",
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				body:        absoluteLink(generateShortLink("https://yandex.ru")),
+				body:        absoluteLink(generateShortLink("https://yandez.ru")),
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := setupServer(nil)
+			if config.Config.DatabaseDSN != "" && tt.name != "same valid link" {
+				db := storage.NewStorageDB()
+				db.DeleteLink(tt.body)
+			}
+			r := setupServer(linksStorage)
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
 			request.Header.Set("Content-Type", tt.contentType)
 			w := httptest.NewRecorder()
@@ -148,7 +155,11 @@ func TestHandlerShortenCookie(t *testing.T) {
 	r := setupServer(linksStorage)
 
 	t.Run("with no cookies", func(t *testing.T) {
-		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
+		if config.Config.DatabaseDSN != "" {
+			db := storage.NewStorageDB()
+			db.DeleteLink("http://yac.ru")
+		}
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://yac.ru"))
 
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, request)
@@ -171,6 +182,10 @@ func TestHandlerShortenCookie(t *testing.T) {
 	})
 
 	t.Run("with valid cookie", func(t *testing.T) {
+		if config.Config.DatabaseDSN != "" {
+			db := storage.NewStorageDB()
+			db.DeleteLink("http://yab.ru")
+		}
 		user := linksStorage.CreateUser()
 		cookieID := &http.Cookie{
 			Name:  "user_id",
@@ -181,7 +196,7 @@ func TestHandlerShortenCookie(t *testing.T) {
 			Name:  "user_token",
 			Value: signed,
 		}
-		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://yab.ru"))
 		request.AddCookie(cookieID)
 		request.AddCookie(cookieToken)
 
@@ -207,6 +222,11 @@ func TestHandlerShortenCookie(t *testing.T) {
 	})
 
 	t.Run("with invalid cookie", func(t *testing.T) {
+		if config.Config.DatabaseDSN != "" {
+			db := storage.NewStorageDB()
+			db.DeleteLink("http://yaa.ru")
+		}
+
 		cookieID := &http.Cookie{
 			Name:  "user_id",
 			Value: "123",
@@ -215,7 +235,7 @@ func TestHandlerShortenCookie(t *testing.T) {
 			Name:  "user_token",
 			Value: "wrong_token",
 		}
-		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://ya.ru"))
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://yaa.ru"))
 		request.AddCookie(cookieID)
 		request.AddCookie(cookieToken)
 
@@ -240,7 +260,7 @@ func TestHandlerShortenCookie(t *testing.T) {
 }
 
 func TestCompression(t *testing.T) {
-	longURL := "https://ya.ru"
+	longURL := "https://yad.ru"
 	linksStorage := storage.NewStorage()
 	shortURL, _ := linksStorage.SaveLongURL(longURL, "")
 	data, _ := middlewares.Compress([]byte(longURL))
@@ -256,7 +276,7 @@ func TestCompression(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, request)
 
-		assert.Equal(t, http.StatusCreated, w.Code)
+		assert.Equal(t, http.StatusConflict, w.Code)
 		decoded, _ := middlewares.Decompress(w.Body.Bytes())
 		assert.Equal(t, absoluteLink(shortURL), string(decoded))
 		assert.Equal(t, "gzip", w.Header().Get("Content-Encoding"))
