@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestHandlerShorten(t *testing.T) {
-	linksStorage := storage.NewStorage()
+	linksStorage, _ := storage.NewStorage()
 
 	type want struct {
 		contentType string
@@ -73,8 +74,8 @@ func TestHandlerShorten(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if config.Config.DatabaseDSN != "" && tt.name != "same valid link" {
-				db := storage.NewStorageDB()
-				db.DeleteLink(tt.body)
+				db, _ := storage.NewStorageDB()
+				db.DeleteLink(context.Background(), tt.body)
 			}
 			r := setupServer(linksStorage)
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
@@ -91,8 +92,8 @@ func TestHandlerShorten(t *testing.T) {
 }
 
 func TestHandlerExpand(t *testing.T) {
-	linksStorage := storage.NewStorage()
-	shortURL, _ := linksStorage.SaveLongURL("https://yandex.ru", "")
+	linksStorage, _ := storage.NewStorage()
+	shortURL, _ := linksStorage.SaveLongURL(context.Background(), "https://yandex.ru", "")
 
 	type want struct {
 		contentType string
@@ -151,13 +152,13 @@ func TestHandlerPing(t *testing.T) {
 }
 
 func TestHandlerShortenCookie(t *testing.T) {
-	linksStorage := storage.NewStorage()
+	linksStorage, _ := storage.NewStorage()
 	r := setupServer(linksStorage)
 
 	t.Run("with no cookies", func(t *testing.T) {
 		if config.Config.DatabaseDSN != "" {
-			db := storage.NewStorageDB()
-			db.DeleteLink("http://yac.ru")
+			db, _ := storage.NewStorageDB()
+			db.DeleteLink(context.Background(), "http://yac.ru")
 		}
 		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://yac.ru"))
 
@@ -183,15 +184,15 @@ func TestHandlerShortenCookie(t *testing.T) {
 
 	t.Run("with valid cookie", func(t *testing.T) {
 		if config.Config.DatabaseDSN != "" {
-			db := storage.NewStorageDB()
-			db.DeleteLink("http://yab.ru")
+			db, _ := storage.NewStorageDB()
+			db.DeleteLink(context.Background(), "http://yab.ru")
 		}
-		user := linksStorage.CreateUser()
+		user := linksStorage.CreateUser(context.Background())
 		cookieID := &http.Cookie{
 			Name:  "user_id",
 			Value: user,
 		}
-		signed := signCookie(user)
+		signed := middlewares.SignCookie(user)
 		cookieToken := &http.Cookie{
 			Name:  "user_token",
 			Value: signed,
@@ -223,8 +224,8 @@ func TestHandlerShortenCookie(t *testing.T) {
 
 	t.Run("with invalid cookie", func(t *testing.T) {
 		if config.Config.DatabaseDSN != "" {
-			db := storage.NewStorageDB()
-			db.DeleteLink("http://yaa.ru")
+			db, _ := storage.NewStorageDB()
+			db.DeleteLink(context.Background(), "http://yaa.ru")
 		}
 
 		cookieID := &http.Cookie{
@@ -261,8 +262,8 @@ func TestHandlerShortenCookie(t *testing.T) {
 
 func TestCompression(t *testing.T) {
 	longURL := "https://yad.ru"
-	linksStorage := storage.NewStorage()
-	shortURL, _ := linksStorage.SaveLongURL(longURL, "")
+	linksStorage, _ := storage.NewStorage()
+	shortURL, _ := linksStorage.SaveLongURL(context.Background(), longURL, "")
 	data, _ := middlewares.Compress([]byte(longURL))
 
 	t.Run("gzip compression", func(t *testing.T) {

@@ -26,12 +26,15 @@ func setupTestConfig(config *config.AppConfig) {
 
 	if *withDB {
 		config.DatabaseDSN = "postgres://postgres:@localhost:5432/shorter_test?sslmode=disable"
-		db.Init()
+		err := db.Init()
+		if err != nil {
+			log.Fatal(err)
+		}
 		// ClearTables()
 	}
 }
 
-func ClearTables() {
+func ClearTables() error {
 	conn, err := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
 
 	if err != nil {
@@ -47,6 +50,8 @@ func ClearTables() {
 
 	_, err = conn.Exec(context.Background(), sql)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"sync"
@@ -13,7 +14,7 @@ type StorageFile struct {
 	filePath string
 }
 
-func (fs *StorageFile) SaveLongURL(longURL, userID string) (shortURL string, err error) {
+func (fs *StorageFile) SaveLongURL(_ctx context.Context, longURL, userID string) (shortURL string, err error) {
 	shortURL, err = GenerateShortLink(longURL)
 	if err != nil {
 		return "", err
@@ -64,7 +65,7 @@ func (fs *StorageFile) SaveLongURL(longURL, userID string) (shortURL string, err
 	return shortURL, nil
 }
 
-func (fs *StorageFile) GetLongURL(shortURL string) (longURL string, ok bool) {
+func (fs *StorageFile) GetLongURL(_ctx context.Context, shortURL string) (longURL string, ok bool) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -86,7 +87,7 @@ func (fs *StorageFile) GetLongURL(shortURL string) (longURL string, ok bool) {
 	return
 }
 
-func (fs *StorageFile) GetUserLinks(userID string) (links []string, ok bool) {
+func (fs *StorageFile) GetUserLinks(_ctx context.Context, userID string) (links []string, ok bool) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -110,14 +111,14 @@ func (fs *StorageFile) GetUserLinks(userID string) (links []string, ok bool) {
 	return
 }
 
-func (fs *StorageFile) CreateUser() string {
+func (fs *StorageFile) CreateUser(_ctx context.Context) string {
 	return uuid.New().String()
 }
 
-func (fs *StorageFile) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
+func (fs *StorageFile) SaveBatch(ctx context.Context, records []BatchInput) ([]BatchOutput, error) {
 	var output []BatchOutput
 	for _, record := range records {
-		shortURL, err := fs.SaveLongURL(record.OriginalURL, "")
+		shortURL, err := fs.SaveLongURL(ctx, record.OriginalURL, "")
 		if err != nil {
 			return output, err
 		}

@@ -15,13 +15,14 @@ func generateShortLink(s string) string {
 }
 
 func setupServer(s storage.Storage) *gin.Engine {
-	r := engine.SetupEngine()
 	var linksStorage storage.Storage
 
 	if s != nil {
 		linksStorage = s
 	} else {
-		linksStorage = storage.NewStorage()
+		linksStorage, _ = storage.NewStorage()
 	}
+
+	r := engine.SetupEngine(linksStorage)
 	return SetupRouter(r, linksStorage)
 }

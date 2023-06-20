@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"sync"
 
 	"github.com/google/uuid"
@@ -11,7 +12,7 @@ type StorageMap struct {
 	data map[string]table
 }
 
-func (storage *StorageMap) SaveLongURL(longURL, userID string) (shortURL string, err error) {
+func (storage *StorageMap) SaveLongURL(_ctx context.Context, longURL, userID string) (shortURL string, err error) {
 	shortURL, err = GenerateShortLink(longURL)
 	if err != nil {
 		return "", err
@@ -43,7 +44,7 @@ func (storage *StorageMap) SaveLongURL(longURL, userID string) (shortURL string,
 	return shortURL, nil
 }
 
-func (storage *StorageMap) GetLongURL(shortURL string) (longURL string, ok bool) {
+func (storage *StorageMap) GetLongURL(_ctx context.Context, shortURL string) (longURL string, ok bool) {
 	storage.mu.Lock()
 	defer storage.mu.Unlock()
 
@@ -54,7 +55,7 @@ func (storage *StorageMap) GetLongURL(shortURL string) (longURL string, ok bool)
 	return
 }
 
-func (storage *StorageMap) GetUserLinks(userID string) (links []string, ok bool) {
+func (storage *StorageMap) GetUserLinks(_ctx context.Context, userID string) (links []string, ok bool) {
 	storage.mu.Lock()
 	defer storage.mu.Unlock()
 
@@ -65,14 +66,14 @@ func (storage *StorageMap) GetUserLinks(userID string) (links []string, ok bool)
 	return
 }
 
-func (storage *StorageMap) CreateUser() string {
+func (storage *StorageMap) CreateUser(_ctx context.Context) string {
 	return uuid.New().String()
 }
 
-func (storage *StorageMap) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
+func (storage *StorageMap) SaveBatch(ctx context.Context, records []BatchInput) ([]BatchOutput, error) {
 	var output []BatchOutput
 	for _, record := range records {
-		shortURL, err := storage.SaveLongURL(record.OriginalURL, "")
+		shortURL, err := storage.SaveLongURL(ctx, record.OriginalURL, "")
 		if err != nil {
 			return output, err
 		}

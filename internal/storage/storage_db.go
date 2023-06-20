@@ -14,16 +14,16 @@ type StorageDB struct {
 	pool *pgxpool.Pool
 }
 
-func (db *StorageDB) SaveLongURL(longURL, userID string) (shortURL string, err error) {
+func (db *StorageDB) SaveLongURL(ctx context.Context, longURL, userID string) (shortURL string, err error) {
 	shortURL, err = GenerateShortLink(longURL)
 	if err != nil {
 		return "", err
 	}
 
 	if userID == "" {
-		err = saveLink(db, longURL, shortURL)
+		err = saveLink(ctx, db, longURL, shortURL)
 	} else {
-		err = saveLinkWithUser(db, longURL, shortURL, userID)
+		err = saveLinkWithUser(ctx, db, longURL, shortURL, userID)
 	}
 	if err != nil {
 		return shortURL, err
@@ -31,7 +31,7 @@ func (db *StorageDB) SaveLongURL(longURL, userID string) (shortURL string, err e
 	return shortURL, nil
 }
 
-func (db *StorageDB) GetLongURL(shortURL string) (longURL string, ok bool) {
+func (db *StorageDB) GetLongURL(ctx context.Context, shortURL string) (longURL string, ok bool) {
 	sql := `SELECT (long_url) FROM links WHERE short_url = $1`
 	err := db.pool.QueryRow(context.Background(), sql, shortURL).Scan(&longURL)
 
@@ -47,7 +47,7 @@ func (db *StorageDB) GetLongURL(shortURL string) (longURL string, ok bool) {
 	}
 }
 
-func (db *StorageDB) CreateUser() string {
+func (db *StorageDB) CreateUser(ctx context.Context) string {
 	uuid := uuid.New().String()
 	sql := `INSERT INTO users(uuid) VALUES ($1) ON CONFLICT(uuid) DO NOTHING`
 	_, err := db.pool.Exec(context.Background(), sql, uuid)
@@ -57,7 +57,7 @@ func (db *StorageDB) CreateUser() string {
 	return uuid
 }
 
-func (db *StorageDB) GetUserLinks(userID string) (links []string, ok bool) {
+func (db *StorageDB) GetUserLinks(ctx context.Context, userID string) (links []string, ok bool) {
 	sql := "SELECT short_url FROM links WHERE id in (SELECT link_id FROM user_links WHERE user_id = $1);"
 	rows, _ := db.pool.Query(context.Background(), sql, userID)
 
@@ -73,7 +73,7 @@ func (db *StorageDB) GetUserLinks(userID string) (links []string, ok bool) {
 	return links, true
 }
 
-func (db *StorageDB) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
+func (db *StorageDB) SaveBatch(ctx context.Context, records []BatchInput) ([]BatchOutput, error) {
 	var output []BatchOutput
 
 	batch := &pgx.Batch{}
@@ -102,11 +102,11 @@ func (db *StorageDB) SaveBatch(records []BatchInput) ([]BatchOutput, error) {
 	return output, nil
 }
 
-func (db *StorageDB) Ping() error {
+func (db *StorageDB) Ping(ctx context.Context) error {
 	return db.pool.Ping(context.Background())
 }
 
-func (db *StorageDB) DeleteLink(longLink string) error {
+func (db *StorageDB) DeleteLink(ctx context.Context, longLink string) error {
 	var linkID string
 
 	sql := `SELECT (id) FROM links WHERE long_url = $1`
@@ -124,7 +124,7 @@ func (db *StorageDB) DeleteLink(longLink string) error {
 	return nil
 }
 
-func saveLink(db *StorageDB, longLink, shortLink string) error {
+func saveLink(ctx context.Context, db *StorageDB, longLink, shortLink string) error {
 	sql := `INSERT INTO links(long_url, short_url) VALUES ($1, $2) ON CONFLICT(long_url) DO NOTHING`
 	code, err := db.pool.Exec(context.Background(), sql, longLink, shortLink)
 	conflict := strings.Split(code.String(), " ")[2] == "0"
@@ -137,7 +137,7 @@ func saveLink(db *StorageDB, longLink, shortLink string) error {
 	return nil
 }
 
-func saveLinkWithUser(db *StorageDB, longLink, shortLink, userID string) error {
+func saveLinkWithUser(ctx context.Context, db *StorageDB, longLink, shortLink, userID string) error {
 	var linkID string
 	sql := `SELECT (id) FROM links WHERE short_url = $1`
 	err := db.pool.QueryRow(context.Background(), sql, shortLink).Scan(&linkID)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/webmstk/shorter/internal/server/middlewares"
 	"github.com/webmstk/shorter/internal/server/util"
 	"github.com/webmstk/shorter/internal/storage"
 )
@@ -34,7 +35,7 @@ func HandlerAPIShorten(store storage.Storage) gin.HandlerFunc {
 		}
 
 		status := http.StatusCreated
-		shortURL, err := store.SaveLongURL(reqBody.URL, "")
+		shortURL, err := store.SaveLongURL(c, reqBody.URL, "")
 		if err != nil {
 			var linkExistError *storage.LinkExistError
 			if errors.As(err, &linkExistError) {
@@ -72,7 +73,7 @@ func HandlerAPIShortenBatch(store storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		output, err := store.SaveBatch(reqBody)
+		output, err := store.SaveBatch(c, reqBody)
 		if err != nil {
 			response := util.WriteJSONError(c, "failed to save some links")
 			c.String(http.StatusBadRequest, response)
@@ -94,12 +95,12 @@ func HandlerAPIUserUrls(storage storage.Storage) gin.HandlerFunc {
 		userToken, _ := c.Cookie("user_token")
 
 		var links []string
-		if !isTokenValid(userID, userToken) {
+		if !middlewares.IsTokenValid(userID, userToken) {
 			c.Status(http.StatusNoContent)
 			return
 		}
 
-		links, ok := storage.GetUserLinks(userID)
+		links, ok := storage.GetUserLinks(c, userID)
 		if !ok {
 			c.Status(http.StatusNoContent)
 			return
@@ -107,7 +108,7 @@ func HandlerAPIUserUrls(storage storage.Storage) gin.HandlerFunc {
 
 		var response []map[string]string
 		for _, link := range links {
-			longURL, ok := storage.GetLongURL(link)
+			longURL, ok := storage.GetLongURL(c, link)
 			if ok {
 				fields := map[string]string{"short_url": absoluteLink(link), "original_url": longURL}
 				response = append(response, fields)

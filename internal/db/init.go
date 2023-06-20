@@ -8,11 +8,11 @@ import (
 	"github.com/webmstk/shorter/internal/config"
 )
 
-func Init() {
+func Init() error {
 	databaseDSN := config.Config.DatabaseDSN
 	conn, err := pgx.Connect(context.Background(), databaseDSN)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	createUsers := `CREATE TABLE IF NOT EXISTS users (
@@ -42,6 +42,8 @@ func Init() {
 
 	runQuery(conn, createUserLinks)
 	runQuery(conn, createUserLinksIndex)
+
+	return nil
 }
 
 func runQuery(conn *pgx.Conn, sql string) {

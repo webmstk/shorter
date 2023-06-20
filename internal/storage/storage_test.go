@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -40,21 +41,21 @@ func TestSaveLongURL(t *testing.T) {
 	}
 
 	storageMap := &StorageMap{data: make(map[string]table)}
-	userID := storageMap.CreateUser()
+	userID := storageMap.CreateUser(context.Background())
 
 	for _, tt := range tests {
 		user := ""
 		if tt.user {
 			user = userID
 		}
-		shortURL, _ := storageMap.SaveLongURL(tt.value, user)
-		longURL, ok := storageMap.GetLongURL(shortURL)
+		shortURL, _ := storageMap.SaveLongURL(context.Background(), tt.value, user)
+		longURL, ok := storageMap.GetLongURL(context.Background(), shortURL)
 
 		require.True(t, ok)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
 
-		userLinks, ok := storageMap.GetUserLinks(user)
+		userLinks, ok := storageMap.GetUserLinks(context.Background(), user)
 		if user != "" {
 			require.True(t, ok)
 			assert.Equal(t, tt.want, userLinks[0])
@@ -63,7 +64,7 @@ func TestSaveLongURL(t *testing.T) {
 
 	path := "../../storage/storage_test.json"
 	storageFile := &StorageFile{filePath: path}
-	userID = storageFile.CreateUser()
+	userID = storageFile.CreateUser(context.Background())
 	defer os.Remove(path)
 
 	for _, tt := range tests {
@@ -71,36 +72,36 @@ func TestSaveLongURL(t *testing.T) {
 		if tt.user {
 			user = userID
 		}
-		shortURL, _ := storageFile.SaveLongURL(tt.value, user)
-		longURL, ok := storageFile.GetLongURL(shortURL)
+		shortURL, _ := storageFile.SaveLongURL(context.Background(), tt.value, user)
+		longURL, ok := storageFile.GetLongURL(context.Background(), shortURL)
 
 		require.True(t, ok)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
 
 		if user != "" {
-			userLinks, ok := storageFile.GetUserLinks(user)
+			userLinks, ok := storageFile.GetUserLinks(context.Background(), user)
 			require.True(t, ok)
 			assert.Equal(t, tt.want, userLinks[0])
 		}
 	}
 
 	if config.Config.DatabaseDSN != "" {
-		storageDB := NewStorageDB()
-		userID = storageDB.CreateUser()
+		storageDB, _ := NewStorageDB()
+		userID = storageDB.CreateUser(context.Background())
 		for _, tt := range tests {
 			user := ""
 			if tt.user {
 				user = userID
 			}
-			shortURL, _ := storageDB.SaveLongURL(tt.value, user)
-			longURL, ok := storageDB.GetLongURL(shortURL)
+			shortURL, _ := storageDB.SaveLongURL(context.Background(), tt.value, user)
+			longURL, ok := storageDB.GetLongURL(context.Background(), shortURL)
 
 			require.True(t, ok)
 			assert.Equal(t, tt.want, shortURL)
 			assert.Equal(t, tt.value, longURL)
 
-			userLinks, ok := storageDB.GetUserLinks(user)
+			userLinks, ok := storageDB.GetUserLinks(context.Background(), user)
 			if user != "" {
 				require.True(t, ok)
 				assert.Equal(t, tt.want, userLinks[0])
@@ -112,7 +113,7 @@ func TestSaveLongURL(t *testing.T) {
 func TestGetLongURL(t *testing.T) {
 	storageMap := &StorageMap{data: make(map[string]table)}
 	link := "https://ya.ru"
-	shortURL, _ := storageMap.SaveLongURL(link, "")
+	shortURL, _ := storageMap.SaveLongURL(context.Background(), link, "")
 
 	type want struct {
 		link string
@@ -143,7 +144,7 @@ func TestGetLongURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		longURL, ok := storageMap.GetLongURL(tt.value)
+		longURL, ok := storageMap.GetLongURL(context.Background(), tt.value)
 		assert.Equal(t, tt.want.ok, ok)
 		assert.Equal(t, tt.want.link, longURL)
 	}
@@ -152,27 +153,27 @@ func TestGetLongURL(t *testing.T) {
 	storageFile := &StorageFile{filePath: path}
 	defer os.Remove(path)
 
-	_, err := storageFile.SaveLongURL(link, "")
+	_, err := storageFile.SaveLongURL(context.Background(), link, "")
 	if err != nil {
 		panic(err)
 	}
 
 	for _, tt := range tests {
-		longURL, ok := storageFile.GetLongURL(tt.value)
+		longURL, ok := storageFile.GetLongURL(context.Background(), tt.value)
 		assert.Equal(t, tt.want.ok, ok)
 		assert.Equal(t, tt.want.link, longURL)
 	}
 
 	if config.Config.DatabaseDSN != "" {
-		storageDB := NewStorageDB()
+		storageDB, _ := NewStorageDB()
 
-		_, err = storageDB.SaveLongURL(link, "")
+		_, err = storageDB.SaveLongURL(context.Background(), link, "")
 		if err != nil {
 			panic(err)
 		}
 
 		for _, tt := range tests {
-			longURL, ok := storageDB.GetLongURL(tt.value)
+			longURL, ok := storageDB.GetLongURL(context.Background(), tt.value)
 			assert.Equal(t, tt.want.ok, ok)
 			assert.Equal(t, tt.want.link, longURL)
 		}
@@ -201,7 +202,7 @@ func TestSaveBatch(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		output, err := storageMap.SaveBatch(tt.input)
+		output, err := storageMap.SaveBatch(context.Background(), tt.input)
 		require.NoError(t, err)
 		assert.Equal(t, tt.want, output)
 	}
@@ -211,16 +212,16 @@ func TestSaveBatch(t *testing.T) {
 	defer os.Remove(path)
 
 	for _, tt := range tests {
-		output, err := storageFile.SaveBatch(tt.input)
+		output, err := storageFile.SaveBatch(context.Background(), tt.input)
 		require.NoError(t, err)
 		assert.Equal(t, tt.want, output)
 	}
 
 	if config.Config.DatabaseDSN != "" {
-		storageDB := NewStorageDB()
+		storageDB, _ := NewStorageDB()
 
 		for _, tt := range tests {
-			output, err := storageDB.SaveBatch(tt.input)
+			output, err := storageDB.SaveBatch(context.Background(), tt.input)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, output)
 		}

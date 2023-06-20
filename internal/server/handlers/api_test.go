@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestHandlerAPIShorten(t *testing.T) {
-	linksStorage := storage.NewStorage()
+	linksStorage, _ := storage.NewStorage()
 
 	type want struct {
 		contentType string
@@ -55,8 +56,8 @@ func TestHandlerAPIShorten(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if config.Config.DatabaseDSN != "" {
-				db := storage.NewStorageDB()
-				db.DeleteLink("https://ya.ru")
+				db, _ := storage.NewStorageDB()
+				db.DeleteLink(context.Background(), "https://ya.ru")
 			}
 			r := setupServer(linksStorage)
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))

@@ -2,8 +2,9 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"hash/fnv"
-	"log"
+	"os"
 	"strconv"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,11 +12,11 @@ import (
 )
 
 type Storage interface {
-	SaveLongURL(longURL, userID string) (shortURL string, err error)
-	GetLongURL(shortURL string) (longURL string, ok bool)
-	CreateUser() string
-	GetUserLinks(UserID string) (links []string, ok bool)
-	SaveBatch(records []BatchInput) ([]BatchOutput, error)
+	SaveLongURL(ctx context.Context, longURL, userID string) (shortURL string, err error)
+	GetLongURL(ctx context.Context, shortURL string) (longURL string, ok bool)
+	CreateUser(ctx context.Context) string
+	GetUserLinks(ctx context.Context, UserID string) (links []string, ok bool)
+	SaveBatch(ctx context.Context, records []BatchInput) ([]BatchOutput, error)
 }
 
 type BatchInput struct {
@@ -44,11 +45,11 @@ func NewLinkExistError(shortURL string) error {
 
 type table map[string]any
 
-func NewStorage() Storage {
+func NewStorage() (Storage, error) {
 	if config.Config.DatabaseDSN != "" {
 		return NewStorageDB()
 	} else if config.Config.FileStoragePath == "" {
-		return NewStorageMap()
+		return NewStorageMap(), nil
 	} else {
 		return NewStorageFile()
 	}
@@ -58,17 +59,31 @@ func NewStorageMap() *StorageMap {
 	return &StorageMap{data: make(map[string]table)}
 }
 
-func NewStorageFile() *StorageFile {
-	return &StorageFile{filePath: config.Config.FileStoragePath}
-}
-
-func NewStorageDB() *StorageDB {
-	pool, err := pgxpool.New(context.Background(), config.Config.DatabaseDSN)
+func NewStorageFile() (*StorageFile, error) {
+	_, err := os.Stat(config.Config.FileStoragePath)
 	if err != nil {
-		log.Fatal("DB failure: ", err)
+		if errors.Is(err, os.ErrNotExist) {
+			f, err := os.Create(config.Config.FileStoragePath)
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
+
+		} else {
+			return nil, err
+		}
 	}
 
-	return &StorageDB{pool: pool}
+	return &StorageFile{filePath: config.Config.FileStoragePath}, nil
+}
+
+func NewStorageDB() (*StorageDB, error) {
+	pool, err := pgxpool.New(context.Background(), config.Config.DatabaseDSN)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StorageDB{pool: pool}, nil
 }
 
 func GenerateShortLink(s string) (string, error) {
