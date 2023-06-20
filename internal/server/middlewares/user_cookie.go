@@ -25,21 +25,6 @@ func UserCookie(store storage.Storage) gin.HandlerFunc {
 
 		c.Set("user_id", userID)
 		c.Set("user_token", userToken)
-
-		// if util.HeaderContains(c.Request.Header, "Content-Encoding", "gzip") {
-		// 	body, err := util.ReadBody(c)
-		// 	if err != nil {
-		// 		abortWithError(c, err)
-		// 		return
-		// 	}
-
-		// 	newBody, err := Decompress([]byte(body))
-		// 	if err != nil {
-		// 		abortWithError(c, err)
-		// 		return
-		// 	}
-		// 	c.Request.Body = io.NopCloser(bytes.NewBuffer(newBody))
-		// }
 	}
 }
 
