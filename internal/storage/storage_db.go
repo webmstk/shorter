@@ -31,18 +31,18 @@ func (db *StorageDB) SaveLongURL(ctx context.Context, longURL, userID string) (s
 	return shortURL, nil
 }
 
-func (db *StorageDB) GetLongURL(ctx context.Context, shortURL string) (longURL string, ok bool) {
+func (db *StorageDB) GetLongURL(ctx context.Context, shortURL string) (longURL string, err error) {
 	sql := `SELECT (long_url) FROM links WHERE short_url = $1`
-	err := db.pool.QueryRow(context.Background(), sql, shortURL).Scan(&longURL)
+	err = db.pool.QueryRow(context.Background(), sql, shortURL).Scan(&longURL)
 
 	switch err {
 	case nil:
-		return longURL, true
+		return longURL, nil
 	case pgx.ErrNoRows:
-		return "", false
+		return "", err
 	default:
 		log.Print("failed to fetch long url", err)
-		return "", false
+		return "", err
 
 	}
 }
@@ -57,7 +57,7 @@ func (db *StorageDB) CreateUser(ctx context.Context) string {
 	return uuid
 }
 
-func (db *StorageDB) GetUserLinks(ctx context.Context, userID string) (links []string, ok bool) {
+func (db *StorageDB) GetUserLinks(ctx context.Context, userID string) (links []string, err error) {
 	sql := "SELECT short_url FROM links WHERE id in (SELECT link_id FROM user_links WHERE user_id = $1);"
 	rows, _ := db.pool.Query(context.Background(), sql, userID)
 
@@ -65,12 +65,12 @@ func (db *StorageDB) GetUserLinks(ctx context.Context, userID string) (links []s
 		var shortURL string
 		err := rows.Scan(&shortURL)
 		if err != nil {
-			return links, false
+			return links, err
 		}
 		links = append(links, shortURL)
 	}
 
-	return links, true
+	return links, nil
 }
 
 func (db *StorageDB) SaveBatch(ctx context.Context, records []BatchInput) ([]BatchOutput, error) {

@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"net/http"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +22,6 @@ func HandlerShorten(store storage.Storage) gin.HandlerFunc {
 		}
 
 		userID := c.GetString("user_id")
-		userToken := c.GetString("user_token")
 
 		status := http.StatusCreated
 		shortURL, err := store.SaveLongURL(c, longURL, userID)
@@ -37,9 +35,6 @@ func HandlerShorten(store storage.Storage) gin.HandlerFunc {
 			}
 		}
 
-		host := strings.Split(config.Config.ServerAddress, ":")[0]
-		c.SetCookie("user_id", userID, config.Config.CookieTTLSeconds, "/", host, false, true)
-		c.SetCookie("user_token", userToken, config.Config.CookieTTLSeconds, "/", host, false, true)
 		c.String(status, absoluteLink(shortURL))
 	}
 }
@@ -48,11 +43,11 @@ func HandlerExpand(storage storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Content-Type", "text/plain")
 		shortURL := c.Param("shortURL")
-		longURL, ok := storage.GetLongURL(c, shortURL)
-		if ok {
-			c.Redirect(http.StatusTemporaryRedirect, longURL)
-		} else {
+		longURL, err := storage.GetLongURL(c, shortURL)
+		if err != nil {
 			c.String(http.StatusNotFound, "Short url not found")
+		} else {
+			c.Redirect(http.StatusTemporaryRedirect, longURL)
 		}
 	}
 }

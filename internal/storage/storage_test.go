@@ -49,15 +49,15 @@ func TestSaveLongURL(t *testing.T) {
 			user = userID
 		}
 		shortURL, _ := storageMap.SaveLongURL(context.Background(), tt.value, user)
-		longURL, ok := storageMap.GetLongURL(context.Background(), shortURL)
+		longURL, err := storageMap.GetLongURL(context.Background(), shortURL)
 
-		require.True(t, ok)
+		require.NoError(t, err)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
 
-		userLinks, ok := storageMap.GetUserLinks(context.Background(), user)
+		userLinks, err := storageMap.GetUserLinks(context.Background(), user)
 		if user != "" {
-			require.True(t, ok)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, userLinks[0])
 		}
 	}
@@ -73,15 +73,15 @@ func TestSaveLongURL(t *testing.T) {
 			user = userID
 		}
 		shortURL, _ := storageFile.SaveLongURL(context.Background(), tt.value, user)
-		longURL, ok := storageFile.GetLongURL(context.Background(), shortURL)
+		longURL, err := storageFile.GetLongURL(context.Background(), shortURL)
 
-		require.True(t, ok)
+		require.NoError(t, err)
 		assert.Equal(t, tt.want, shortURL)
 		assert.Equal(t, tt.value, longURL)
 
 		if user != "" {
-			userLinks, ok := storageFile.GetUserLinks(context.Background(), user)
-			require.True(t, ok)
+			userLinks, err := storageFile.GetUserLinks(context.Background(), user)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, userLinks[0])
 		}
 	}
@@ -95,15 +95,15 @@ func TestSaveLongURL(t *testing.T) {
 				user = userID
 			}
 			shortURL, _ := storageDB.SaveLongURL(context.Background(), tt.value, user)
-			longURL, ok := storageDB.GetLongURL(context.Background(), shortURL)
+			longURL, err := storageDB.GetLongURL(context.Background(), shortURL)
 
-			require.True(t, ok)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, shortURL)
 			assert.Equal(t, tt.value, longURL)
 
-			userLinks, ok := storageDB.GetUserLinks(context.Background(), user)
+			userLinks, err := storageDB.GetUserLinks(context.Background(), user)
 			if user != "" {
-				require.True(t, ok)
+				require.NoError(t, err)
 				assert.Equal(t, tt.want, userLinks[0])
 			}
 		}
@@ -144,8 +144,10 @@ func TestGetLongURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		longURL, ok := storageMap.GetLongURL(context.Background(), tt.value)
-		assert.Equal(t, tt.want.ok, ok)
+		longURL, err := storageMap.GetLongURL(context.Background(), tt.value)
+		if tt.want.ok {
+			require.NoError(t, err)
+		}
 		assert.Equal(t, tt.want.link, longURL)
 	}
 
@@ -159,8 +161,10 @@ func TestGetLongURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		longURL, ok := storageFile.GetLongURL(context.Background(), tt.value)
-		assert.Equal(t, tt.want.ok, ok)
+		longURL, err := storageFile.GetLongURL(context.Background(), tt.value)
+		if tt.want.ok {
+			require.NoError(t, err)
+		}
 		assert.Equal(t, tt.want.link, longURL)
 	}
 
@@ -173,8 +177,10 @@ func TestGetLongURL(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			longURL, ok := storageDB.GetLongURL(context.Background(), tt.value)
-			assert.Equal(t, tt.want.ok, ok)
+			longURL, err := storageDB.GetLongURL(context.Background(), tt.value)
+			if tt.want.ok {
+				require.NoError(t, err)
+			}
 			assert.Equal(t, tt.want.link, longURL)
 		}
 	}

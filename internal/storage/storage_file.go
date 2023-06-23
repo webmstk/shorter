@@ -14,7 +14,7 @@ type StorageFile struct {
 	filePath string
 }
 
-func (fs *StorageFile) SaveLongURL(_ctx context.Context, longURL, userID string) (shortURL string, err error) {
+func (fs *StorageFile) SaveLongURL(_ context.Context, longURL, userID string) (shortURL string, err error) {
 	shortURL, err = GenerateShortLink(longURL)
 	if err != nil {
 		return "", err
@@ -65,19 +65,19 @@ func (fs *StorageFile) SaveLongURL(_ctx context.Context, longURL, userID string)
 	return shortURL, nil
 }
 
-func (fs *StorageFile) GetLongURL(_ctx context.Context, shortURL string) (longURL string, ok bool) {
+func (fs *StorageFile) GetLongURL(_ context.Context, shortURL string) (longURL string, err error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
 	file, err := os.OpenFile(fs.filePath, os.O_RDONLY, 0644)
 	if err != nil {
-		return "", false
+		return "", err
 	}
 	defer file.Close()
 
 	storage, err := parseFile(file)
 	if err != nil {
-		return "", false
+		return "", err
 	}
 
 	value, ok := getTable(storage, "links")[shortURL]
@@ -87,19 +87,19 @@ func (fs *StorageFile) GetLongURL(_ctx context.Context, shortURL string) (longUR
 	return
 }
 
-func (fs *StorageFile) GetUserLinks(_ctx context.Context, userID string) (links []string, ok bool) {
+func (fs *StorageFile) GetUserLinks(_ context.Context, userID string) (links []string, err error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
 	file, err := os.OpenFile(fs.filePath, os.O_RDONLY, 0644)
 	if err != nil {
-		return nil, false
+		return nil, err
 	}
 	defer file.Close()
 
 	storage, err := parseFile(file)
 	if err != nil {
-		return nil, false
+		return nil, err
 	}
 
 	values, ok := getTable(storage, "user_links")[userID]
@@ -111,7 +111,7 @@ func (fs *StorageFile) GetUserLinks(_ctx context.Context, userID string) (links 
 	return
 }
 
-func (fs *StorageFile) CreateUser(_ctx context.Context) string {
+func (fs *StorageFile) CreateUser(_ context.Context) string {
 	return uuid.New().String()
 }
 

@@ -13,9 +13,9 @@ import (
 
 type Storage interface {
 	SaveLongURL(ctx context.Context, longURL, userID string) (shortURL string, err error)
-	GetLongURL(ctx context.Context, shortURL string) (longURL string, ok bool)
+	GetLongURL(ctx context.Context, shortURL string) (longURL string, err error)
 	CreateUser(ctx context.Context) string
-	GetUserLinks(ctx context.Context, UserID string) (links []string, ok bool)
+	GetUserLinks(ctx context.Context, UserID string) (links []string, err error)
 	SaveBatch(ctx context.Context, records []BatchInput) ([]BatchOutput, error)
 }
 

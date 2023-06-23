@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/webmstk/shorter/internal/config"
@@ -24,7 +25,10 @@ func UserCookie(store storage.Storage) gin.HandlerFunc {
 		}
 
 		c.Set("user_id", userID)
-		c.Set("user_token", userToken)
+
+		host := strings.Split(config.Config.ServerAddress, ":")[0]
+		c.SetCookie("user_id", userID, config.Config.CookieTTLSeconds, "/", host, false, true)
+		c.SetCookie("user_token", userToken, config.Config.CookieTTLSeconds, "/", host, false, true)
 	}
 }
 

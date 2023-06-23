@@ -100,16 +100,16 @@ func HandlerAPIUserUrls(storage storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		links, ok := storage.GetUserLinks(c, userID)
-		if !ok {
+		links, err := storage.GetUserLinks(c, userID)
+		if err != nil {
 			c.Status(http.StatusNoContent)
 			return
 		}
 
 		var response []map[string]string
 		for _, link := range links {
-			longURL, ok := storage.GetLongURL(c, link)
-			if ok {
+			longURL, err := storage.GetLongURL(c, link)
+			if err == nil {
 				fields := map[string]string{"short_url": absoluteLink(link), "original_url": longURL}
 				response = append(response, fields)
 			}
