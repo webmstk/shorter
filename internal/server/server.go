@@ -10,10 +10,13 @@ import (
 )
 
 func Run() {
-	linksStorage := storage.NewStorage()
-	r := engine.SetupEngine()
+	linksStorage, err := storage.NewStorage()
+	if err != nil {
+		log.Fatal("DB failure: ", err)
+	}
+	r := engine.SetupEngine(linksStorage)
 	handlers.SetupRouter(r, linksStorage)
 	log.Println("Starting web-server at", config.ServerBaseURL)
-	err := r.Run(config.Config.ServerAddress)
+	err = r.Run(config.Config.ServerAddress)
 	log.Fatal(err)
 }
